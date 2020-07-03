@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <script type="module">
+    import { createLocalDB } from "./index.js"
+    const a = createLocalDB({name:"a"})
+    a.setItem("1","@1")
+    a.setItem("2",{a:"a",b:"b",c:"c"})
+    a.getItem("2").then(data=>console.log(data))
+    a.length().then(data=>console.log("length",data))
+    a.keys().then(data=>console.log("keys",data))
+    a.removeItem("1").then(data=>console.log("removeItem",data))
+    a.clean().then(data=>console.log("clean",data))
+  </script>
+</head>
+<body>
+  
+</body>
+</html>

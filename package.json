@@ -1,0 +1,31 @@
+{
+  "name": "localdb",
+  "version": "1.0.0",
+  "description": "use web db",
+  "main": "index.js",
+  "scripts": {
+    "build": "rollup  -c"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@gitee.com:eliot-ye/localdb-js.git"
+  },
+  "author": "Eliot",
+  "license": "MIT",
+  "dependencies": {
+    "crypto-js": "^4.0.0"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^12.0.0",
+    "@rollup/plugin-node-resolve": "^8.0.0",
+    "@rollup/plugin-typescript": "^4.1.2",
+    "@types/crypto-js": "^3.1.47",
+    "eslint-config-rollup": "^0.1.0",
+    "rollup": "^2.12.1",
+    "tslib": "^2.0.0",
+    "typescript": "^3.9.3"
+  },
+  "eslintConfig": {
+    "extends": "rollup"
+  }
+}
