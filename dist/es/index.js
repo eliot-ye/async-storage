@@ -11,15 +11,15 @@ function localStorageEngine(opt) {
     }
     const localStorageEngine = {
         support,
-        async setItem(key, value, secretPassphrase) {
+        async setItem(key, value) {
             if (value === undefined) {
                 return Promise.reject("value is undefined");
             }
             localStorage.setItem(keyPrefix + key, JSON.stringify(value));
         },
-        async getItem(key, secretPassphrase) {
+        async getItem(key) {
             const valueStr = localStorage.getItem(keyPrefix + key);
-            return valueStr ? JSON.parse(valueStr) : valueStr;
+            return valueStr && JSON.parse(valueStr);
         },
         async keys() {
             let keys = [];
@@ -38,7 +38,7 @@ function localStorageEngine(opt) {
         async removeItem(key) {
             localStorage.removeItem(keyPrefix + key);
         },
-        async clean() {
+        async clear() {
             const keys = await localStorageEngine.keys();
             keys.map(key => localStorageEngine.removeItem(key));
         },
@@ -71,7 +71,7 @@ function indexDBEngine(opt) {
     };
     let indexDBEngine = {
         support,
-        setItem(key, value, secretPassphrase) {
+        setItem(key, value) {
             if (value === undefined) {
                 return Promise.reject("value is undefined");
             }
@@ -88,12 +88,13 @@ function indexDBEngine(opt) {
                 db ? handle() : readyList.push(handle);
             });
         },
-        getItem(key, secretPassphrase) {
+        getItem(key) {
             return new Promise((resolve, reject) => {
                 function handle() {
                     const request = db.transaction([storeName]).objectStore(storeName).get(key);
                     request.onsuccess = function () {
-                        resolve(request.result);
+                        const data = request.result;
+                        resolve(data);
                     };
                     request.onerror = function () {
                         reject(request.error);
@@ -144,7 +145,7 @@ function indexDBEngine(opt) {
                 db ? handle() : readyList.push(handle);
             });
         },
-        clean() {
+        clear() {
             return new Promise((resolve, reject) => {
                 function handle() {
                     const request = db.transaction([storeName], 'readwrite').objectStore(storeName).clear();
@@ -162,16 +163,17 @@ function indexDBEngine(opt) {
     return indexDBEngine;
 }
 
+const engineNames = { LOCAL_STORAGE, INDEX_DB };
 const engineList = {
     [LOCAL_STORAGE]: localStorageEngine,
     [INDEX_DB]: indexDBEngine
 };
-const engineNameList = [INDEX_DB, LOCAL_STORAGE];
 function defineEngine(engineName, engine) {
     engineList[engineName] = engine;
 }
+console.error(111);
 function createLocalDB(createOpt) {
-    const _engineNameList = createOpt.engineNameList || engineNameList;
+    const _engineNameList = createOpt.engineNameList || Object.values(engineNames);
     let engineObj = engineList[_engineNameList[0]]({ name: createOpt.name, storeName: createOpt.storeName });
     if (!engineObj.support) {
         for (let i = 1; i < _engineNameList.length; i++) {
@@ -186,9 +188,10 @@ function createLocalDB(createOpt) {
         length: engineObj.length,
         keys: engineObj.keys,
         removeItem: engineObj.removeItem,
-        clean: engineObj.clean
+        clear: engineObj.clear
     };
     return publicEngine;
 }
 
-export { createLocalDB, defineEngine };
+export { createLocalDB, defineEngine, engineNames };
+//# sourceMappingURL=index.js.map

@@ -28,7 +28,7 @@ export function indexDBEngine(opt: initOption): engine {
   let indexDBEngine: engine = {
     support,
 
-    setItem(key, value, secretPassphrase) {
+    setItem(key, value) {
       if (value === undefined) {
         return Promise.reject("value is undefined");
       }
@@ -46,12 +46,13 @@ export function indexDBEngine(opt: initOption): engine {
       })
     },
 
-    getItem(key, secretPassphrase) {
+    getItem(key) {
       return new Promise((resolve, reject) => {
         function handle() {
           const request = db.transaction([storeName]).objectStore(storeName).get(key);
           request.onsuccess = function () {
-            resolve(request.result)
+            const data = request.result;
+            resolve(data)
           }
           request.onerror = function () {
             reject(request.error)
@@ -104,7 +105,7 @@ export function indexDBEngine(opt: initOption): engine {
         db ? handle() : readyList.push(handle);
       })
     },
-    clean() {
+    clear() {
       return new Promise((resolve, reject) => {
         function handle() {
           const request = db.transaction([storeName], 'readwrite').objectStore(storeName).clear()
