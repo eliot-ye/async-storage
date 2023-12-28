@@ -11,7 +11,7 @@ export function ELocalStorage(name = "default"): StorageEngine | null {
       ready = true;
     }
   } catch (error) {
-    CusLog.error("LSE_localStorage", "unready", error);
+    CusLog.error("ELocalStorage", "unready", error);
   }
 
   if (!ready) {
