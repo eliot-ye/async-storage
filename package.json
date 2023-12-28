@@ -14,6 +14,11 @@
       "require": "./dist/async-storage.cjs",
       "types": "./libs/asyncStorage.ts"
     },
+    "./engine/cookie": {
+      "import": "./dist/cookie.js",
+      "require": "./dist/cookie.cjs",
+      "types": "./libs/engine/cookie.ts"
+    },
     "./engine/localStorage": {
       "import": "./dist/localStorage.js",
       "require": "./dist/localStorage.cjs",
