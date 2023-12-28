@@ -1,28 +1,41 @@
 {
-  "name": "localdb",
+  "name": "async-storage",
+  "private": true,
   "version": "1.0.0",
-  "description": "use web db",
-  "main": "index.js",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/async-storage.cjs",
+  "module": "./dist/async-storage.js",
+  "exports": {
+    ".": {
+      "import": "./dist/async-storage.js",
+      "require": "./dist/async-storage.cjs",
+      "types": "./libs/asyncStorage.ts"
+    },
+    "./engine/localStorage": {
+      "import": "./dist/localStorage.js",
+      "require": "./dist/localStorage.cjs",
+      "types": "./libs/engine/localStorage.ts"
+    },
+    "./engine/indexedDB": {
+      "import": "./dist/indexedDB.js",
+      "require": "./dist/indexedDB.cjs",
+      "types": "./libs/engine/indexedDB.ts"
+    }
+  },
   "scripts": {
-    "build": "rollup  -c"
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
   },
-  "repository": {
-    "type": "git",
-    "url": "git@gitee.com:eliot-ye/localdb-js.git"
-  },
-  "author": "Eliot",
-  "license": "MIT",
-  "dependencies": {},
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^12.0.0",
-    "@rollup/plugin-node-resolve": "^8.0.0",
-    "@rollup/plugin-typescript": "^4.1.2",
-    "eslint-config-rollup": "^0.1.0",
-    "rollup": "^2.12.1",
-    "tslib": "^2.0.0",
-    "typescript": "^3.9.3"
+    "typescript": "^5.2.2",
+    "vite": "^5.0.8",
+    "@types/crypto-js": "^4.2.1"
   },
-  "eslintConfig": {
-    "extends": "rollup"
+  "dependencies": {
+    "crypto-js": "^4.2.0"
   }
 }
