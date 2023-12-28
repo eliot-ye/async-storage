@@ -6,7 +6,7 @@ export interface StorageEngine {
     key: string
   ) => Promise<string | null | undefined> | string | null | undefined;
   removeItem: (key: string) => Promise<void> | void;
-  onReady?: (callback: () => void) => void;
+  onReady?: () => Promise<void>;
 }
 
 interface Option<T> {
@@ -32,7 +32,7 @@ export function createAsyncStorage<T extends JSONConstraint>(
   const readyCallbacks: (() => void)[] = [];
   if (_engine) {
     if (_engine.onReady) {
-      _engine.onReady(() => {
+      _engine.onReady().then(() => {
         ready = true;
         readyCallbacks.forEach((cb) => cb());
       });

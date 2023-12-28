@@ -1,6 +1,10 @@
 import { CusLog } from "../../utils/tools";
 import type { StorageEngine } from "../asyncStorage";
 
+export enum ErrorMessage {
+  NOT_READY = "IndexedDB is not ready, please handle in the onReady event",
+}
+
 export function EIndexedDB(
   name = "asyncStorage",
   version = 1
@@ -36,16 +40,20 @@ export function EIndexedDB(
     return null;
   }
 
-  const NotReadyError = "IndexedDB is not ready";
-
   const storageEngine: StorageEngine = {
-    onReady(callback) {
-      readyCallbacks.push(callback);
+    onReady() {
+      return new Promise((resolve) => {
+        if (idbDatabase) {
+          resolve();
+        } else {
+          readyCallbacks.push(resolve);
+        }
+      });
     },
     getItem(key) {
       return new Promise((resolve, reject) => {
         if (!idbDatabase) {
-          return reject(NotReadyError);
+          return reject(ErrorMessage.NOT_READY);
         }
         const transaction = idbDatabase.transaction(
           objectStoreName,
@@ -68,7 +76,7 @@ export function EIndexedDB(
     setItem(key, value) {
       return new Promise((resolve, reject) => {
         if (!idbDatabase) {
-          return reject(NotReadyError);
+          return reject(ErrorMessage.NOT_READY);
         }
         const transaction = idbDatabase.transaction(
           objectStoreName,
@@ -87,7 +95,7 @@ export function EIndexedDB(
     removeItem(key) {
       return new Promise((resolve, reject) => {
         if (!idbDatabase) {
-          return reject(NotReadyError);
+          return reject(ErrorMessage.NOT_READY);
         }
         const transaction = idbDatabase.transaction(
           objectStoreName,
