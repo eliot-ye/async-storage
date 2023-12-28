@@ -1,7 +1,7 @@
 import { CusLog } from "../../utils/tools";
 import type { StorageEngine } from "../asyncStorage";
 
-export function ECookies(): StorageEngine | null {
+export function ECookie(): StorageEngine | null {
   let ready = false;
   try {
     const testString = "test=test";
@@ -10,7 +10,7 @@ export function ECookies(): StorageEngine | null {
       ready = true;
     }
   } catch (error) {
-    CusLog.error("ECookies", "unready", error);
+    CusLog.error("ECookie", "unready", error);
   }
 
   if (!ready) {
