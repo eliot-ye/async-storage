@@ -12,5 +12,8 @@ export default defineConfig({
       },
       name: "AsyncStorage",
     },
+    rollupOptions: {
+      external: ["crypto-js"],
+    },
   },
 });
