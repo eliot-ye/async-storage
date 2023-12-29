@@ -1,5 +1,9 @@
 import { AESDecrypt, AESEncrypt, MD5 } from "../utils/encoding";
 
+export enum ErrorMessage {
+  NOT_ENGINE = "No storage engine",
+}
+
 export interface StorageEngine {
   setItem: (key: string, value: string) => Promise<void> | void;
   getItem: (
@@ -67,6 +71,9 @@ export function createAsyncStorage<T extends JSONConstraint>(
       });
     },
     async set<K extends Key>(key: K, value: T[K]) {
+      if (!_engine) {
+        return Promise.reject(new Error(ErrorMessage.NOT_ENGINE));
+      }
       let _value = value;
       if (increments.includes(key)) {
         _value = {
@@ -78,10 +85,13 @@ export function createAsyncStorage<T extends JSONConstraint>(
       if (secretKey) {
         valueStr = EncryptFn(valueStr, secretKey);
       }
-      return _engine?.setItem(getHashKey(key), valueStr);
+      return _engine.setItem(getHashKey(key), valueStr);
     },
     async get<K extends Key>(key: K): Promise<T[K]> {
-      let str = await _engine?.getItem(getHashKey(key));
+      if (!_engine) {
+        return Promise.reject(new Error(ErrorMessage.NOT_ENGINE));
+      }
+      let str = await _engine.getItem(getHashKey(key));
       if (str === null || str === undefined) {
         return initialData[key];
       }
@@ -96,7 +106,10 @@ export function createAsyncStorage<T extends JSONConstraint>(
       return str as any;
     },
     remove(key: Key) {
-      return _engine?.removeItem(getHashKey(key));
+      if (!_engine) {
+        return Promise.reject(new Error(ErrorMessage.NOT_ENGINE));
+      }
+      return _engine.removeItem(getHashKey(key));
     },
   };
 }
