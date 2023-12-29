@@ -1,7 +1,22 @@
 {
   "name": "async-storage",
-  "private": true,
   "version": "1.0.0",
+  "description": "一个异步 API 的本地存储库",
+  "author": {
+    "name": "Eliot Ye",
+    "url": "https://github.com/eliot-ye"
+  },
+  "homepage": "https://github.com/eliot-ye/async-storage",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/eliot-ye/async-storage.git"
+  },
+  "keywords": [
+    "storage",
+    "localstorage",
+    "indexedDB",
+    "cookie"
+  ],
   "type": "module",
   "files": [
     "dist"
