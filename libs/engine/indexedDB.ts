@@ -53,7 +53,7 @@ export function EIndexedDB(
     getItem(key) {
       return new Promise((resolve, reject) => {
         if (!idbDatabase) {
-          return reject(ErrorMessage.NOT_READY);
+          return reject(new Error(ErrorMessage.NOT_READY));
         }
         const transaction = idbDatabase.transaction(
           objectStoreName,
@@ -76,7 +76,7 @@ export function EIndexedDB(
     setItem(key, value) {
       return new Promise((resolve, reject) => {
         if (!idbDatabase) {
-          return reject(ErrorMessage.NOT_READY);
+          return reject(new Error(ErrorMessage.NOT_READY));
         }
         const transaction = idbDatabase.transaction(
           objectStoreName,
@@ -95,7 +95,7 @@ export function EIndexedDB(
     removeItem(key) {
       return new Promise((resolve, reject) => {
         if (!idbDatabase) {
-          return reject(ErrorMessage.NOT_READY);
+          return reject(new Error(ErrorMessage.NOT_READY));
         }
         const transaction = idbDatabase.transaction(
           objectStoreName,
