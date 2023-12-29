@@ -1,7 +1,7 @@
 import { CusLog } from "../../utils/tools";
 import type { StorageEngine } from "../asyncStorage";
 
-export function ECookie(): StorageEngine | null {
+export function ECookie(name = "LS"): StorageEngine | null {
   let ready = false;
   try {
     const testString = "test=test";
@@ -24,7 +24,10 @@ export function ECookie(): StorageEngine | null {
           document.cookie.replace(
             new RegExp(
               "(?:(?:^|.*;)\\s*" +
-                encodeURIComponent(key).replace(/[-.+*]/g, "\\$&") +
+                encodeURIComponent(`${name}_${key}`).replace(
+                  /[-.+*]/g,
+                  "\\$&"
+                ) +
                 "\\s*\\=\\s*([^;]*).*$)|^.*$"
             ),
             "$1"
@@ -39,7 +42,7 @@ export function ECookie(): StorageEngine | null {
         }
         const sExpires = "; expires=Fri, 31 Dec 9999 23:59:59 GMT";
         document.cookie =
-          encodeURIComponent(key) +
+          encodeURIComponent(`${name}_${key}`) +
           "=" +
           encodeURIComponent(value) +
           sExpires +
@@ -49,7 +52,8 @@ export function ECookie(): StorageEngine | null {
     },
     removeItem(key) {
       document.cookie =
-        encodeURIComponent(key) + "=; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+        encodeURIComponent(`${name}_${key}`) +
+        "=; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     },
   };
 

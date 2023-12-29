@@ -1,7 +1,7 @@
 import { CusLog } from "../../utils/tools";
 import type { StorageEngine } from "../asyncStorage";
 
-export function ELocalStorage(name = "default"): StorageEngine | null {
+export function ELocalStorage(name = "LS"): StorageEngine | null {
   let ready = false;
   try {
     const testString = "test";
