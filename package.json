@@ -21,12 +21,12 @@
   "files": [
     "dist"
   ],
-  "main": "./dist/async-storage.cjs",
-  "module": "./dist/async-storage.js",
+  "main": "./dist/asyncStorage.cjs",
+  "module": "./dist/asyncStorage.js",
   "exports": {
     ".": {
-      "import": "./dist/async-storage.js",
-      "require": "./dist/async-storage.cjs",
+      "import": "./dist/asyncStorage.js",
+      "require": "./dist/asyncStorage.cjs",
       "types": "./libs/asyncStorage.ts"
     },
     "./engine/cookie": {
