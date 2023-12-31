@@ -23,7 +23,7 @@ interface Option<T> {
 
 export function createAsyncStorage<T extends JSONConstraint>(
   initialData: T,
-  engines: (StorageEngine | (() => StorageEngine) | null)[],
+  engines: (StorageEngine | (() => StorageEngine | null) | null)[],
   option: Option<T> = {}
 ) {
   type Key = keyof T;
