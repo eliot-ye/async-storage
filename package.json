@@ -1,6 +1,6 @@
 {
   "name": "gpl-async-storage",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "一个异步 API 的本地存储库",
   "author": {
     "name": "Eliot Ye",
