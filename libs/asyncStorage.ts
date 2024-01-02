@@ -62,7 +62,7 @@ export function createAsyncStorage<T extends JSONConstraint>(
   }
 
   return {
-    async ready() {
+    async onReady() {
       if (ready) {
         return;
       }

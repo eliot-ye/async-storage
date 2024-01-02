@@ -31,7 +31,7 @@ const LS = createAsyncStorage(
 
 async function getCounter() {
   // 如果存储引擎为异步，则有可能需要等待存储引擎的初始化完成
-  await LS.ready();
+  await LS.onReady();
 
   // 获取数据
   const value1 = await LS.get("counter"); // 0

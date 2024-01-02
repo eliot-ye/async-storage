@@ -41,16 +41,16 @@ async function setupCounter(element: HTMLButtonElement) {
   setCounter(counter);
 }
 
-LS.ready().then(() => {
+LS.onReady().then(() => {
   setupCounter(document.querySelector<HTMLButtonElement>("#counter")!);
 });
 
-LS.ready().then(async () => {
+LS.onReady().then(async () => {
   console.log(await LS.get("a"));
   await LS.set("a", "a3");
   console.log(await LS.get("a"));
 });
-LS.ready().then(async () => {
+LS.onReady().then(async () => {
   console.log(await LS.get("b"));
   await LS.set("b", "b1");
   console.log(await LS.get("b"));
