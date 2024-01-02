@@ -2,6 +2,7 @@
   "name": "gpl-async-storage",
   "version": "1.0.1",
   "description": "一个异步 API 的本地存储库",
+  "license": "MulanPSL2",
   "author": {
     "name": "Eliot Ye",
     "url": "https://github.com/eliot-ye"
@@ -24,6 +25,7 @@
   ],
   "main": "./dist/asyncStorage.cjs",
   "module": "./dist/asyncStorage.js",
+  "typings": "./libs/asyncStorage.ts",
   "exports": {
     ".": {
       "import": "./dist/asyncStorage.js",
