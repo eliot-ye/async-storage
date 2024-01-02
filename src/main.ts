@@ -1,8 +1,7 @@
 import "./style.css";
 import typescriptLogo from "./typescript.svg";
 import viteLogo from "/vite.svg";
-import { createAsyncStorage } from "../libs/asyncStorage.ts";
-import { EIndexedDB } from "../libs/engine/indexedDB.ts";
+import { createAsyncStorage, EIndexedDB } from "../libs";
 
 const LS = createAsyncStorage(
   {

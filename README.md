@@ -13,10 +13,12 @@ npm i gpl-async-storage
 ## 使用
 
 ```js
-import { createAsyncStorage } from "gpl-async-storage";
-import { EIndexedDB } from "gpl-async-storage/engine/indexedDB";
-import { ELocalStorage } from "gpl-async-storage/engine/localStorage";
-import { ECookie } from "gpl-async-storage/engine/cookie";
+import {
+  createAsyncStorage,
+  EIndexedDB,
+  ELocalStorage,
+  ECookie,
+} from "gpl-async-storage";
 
 const LS = createAsyncStorage(
   {
@@ -24,7 +26,7 @@ const LS = createAsyncStorage(
   },
   // 存储引擎会按照顺序依次尝试，直到找到一个可用存储引擎
   // 这里使用了三个存储引擎，优先级依次为：IndexedDB > localStorage > cookie
-  [EIndexedDB(), ELocalStorage(), ECookie()],
+  [EIndexedDB(), ELocalStorage(), ECookie()]
 );
 
 // 保存数据
@@ -53,10 +55,7 @@ LS.ready().then(async () => {
 ### 加密
 
 ```js
-import { createAsyncStorage } from "gpl-async-storage";
-import { EIndexedDB } from "gpl-async-storage/engine/indexedDB";
-import { ELocalStorage } from "gpl-async-storage/engine/localStorage";
-import { ECookie } from "gpl-async-storage/engine/cookie";
+import { createAsyncStorage, EIndexedDB } from "gpl-async-storage";
 
 const LS = createAsyncStorage(
   {
