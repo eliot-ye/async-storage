@@ -28,9 +28,9 @@
   "typings": "./libs/index.ts",
   "exports": {
     ".": {
-      "import": "./dist/asyncStorage.js",
-      "require": "./dist/asyncStorage.cjs",
-      "types": "./libs/asyncStorage.ts"
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
+      "types": "./libs/index.ts"
     },
     "./cookie": {
       "import": "./dist/cookie.js",
