@@ -91,12 +91,16 @@ export function createAsyncStorage<T extends JSONConstraint>(
       if (!_engine) {
         return Promise.reject(new Error(ErrorMessage.NOT_ENGINE));
       }
-      let str = await _engine.getItem(getHashKey(key));
+      const str = await _engine.getItem(getHashKey(key));
       if (str === null || str === undefined) {
         return initialData[key];
       }
       if (secretKey) {
-        str = DecryptFn(str, secretKey);
+        try {
+          return JSON.parse(DecryptFn(str, secretKey));
+        } catch (error) {
+          console.error(key, error);
+        }
       }
       try {
         return JSON.parse(str);
