@@ -29,27 +29,22 @@ const LS = createAsyncStorage(
   [EIndexedDB(), ELocalStorage(), ECookie()]
 );
 
-// 保存数据
-LS.set("counter", 2);
-
-// 获取数据
-LS.get("counter").then((value) => {
-  // value = 2
-});
 async function getCounter() {
-  const value = await LS.get("counter");
-  // value = 2
+  // 如果存储引擎为异步，则有可能需要等待存储引擎的初始化完成
+  await LS.ready();
+
+  // 获取数据
+  const value1 = await LS.get("counter"); // 0
+
+  // 设置数据
+  await LS.set("counter", 2);
+
+  // 获取数据
+  const value2 = await LS.get("counter"); // 2
+
+  // 删除数据
+  LS.remove("counter");
 }
-
-// 删除数据
-LS.remove("key");
-
-// 如果存储引擎为异步，则有可能需要等待存储引擎的初始化完成
-LS.ready().then(async () => {
-  // 存储引擎初始化已完成
-  const value = await LS.get("counter");
-  // value = 2
-});
 ```
 
 ### 加密
