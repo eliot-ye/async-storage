@@ -1,5 +1,5 @@
 {
-  "name": "async-storage",
+  "name": "gpl-async-storage",
   "version": "1.0.0",
   "description": "一个异步 API 的本地存储库",
   "author": {
@@ -19,7 +19,8 @@
   ],
   "type": "module",
   "files": [
-    "dist"
+    "dist",
+    "libs"
   ],
   "main": "./dist/asyncStorage.cjs",
   "module": "./dist/asyncStorage.js",
