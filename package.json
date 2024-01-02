@@ -2,7 +2,7 @@
   "name": "gpl-async-storage",
   "version": "1.1.0",
   "description": "一个异步 API 的本地存储库",
-  "license": "MulanPSL2",
+  "license": "MulanPSL-2.0",
   "author": {
     "name": "Eliot Ye",
     "url": "https://github.com/eliot-ye"
