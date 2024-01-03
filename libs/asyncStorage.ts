@@ -17,6 +17,7 @@ interface Option<T> {
   secretKey?: string;
   EncryptFn?: (message: string, key: string) => string;
   DecryptFn?: (message: string, key: string) => string;
+  enableHashKey?: boolean;
   HashFn?: (message: string) => string;
   increments?: (keyof T)[];
 }
@@ -47,6 +48,7 @@ export function createAsyncStorage<T extends JSONConstraint>(
 
   const {
     secretKey,
+    enableHashKey,
     EncryptFn = AESEncrypt,
     DecryptFn = AESDecrypt,
     HashFn = MD5,
@@ -55,7 +57,7 @@ export function createAsyncStorage<T extends JSONConstraint>(
 
   function getHashKey(key: Key) {
     const _key = key as string;
-    if (secretKey) {
+    if (enableHashKey) {
       return HashFn(_key);
     }
     return _key;
