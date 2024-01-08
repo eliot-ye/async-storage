@@ -8,6 +8,7 @@ const LS = createAsyncStorage(
     counter: 0,
     a: "a",
     b: "b",
+    testObject: { a: 1, b: 2 },
   },
   [EIndexedDB()]
 );
@@ -23,6 +24,9 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
     <h1>Vite + TypeScript</h1>
     <div class="card">
       <button id="counter" type="button"></button>
+    </div>
+    <div class="card">
+      <button id="testObject" type="button"></button>
     </div>
     <p class="read-the-docs">
       Click on the Vite and TypeScript logos to learn more
@@ -41,8 +45,20 @@ async function setupCounter(element: HTMLButtonElement) {
   setCounter(counter);
 }
 
+async function setupTestObject(element: HTMLButtonElement) {
+  let testObject = await LS.get("testObject");
+  const setTestObject = (count: number) => {
+    testObject.a = count;
+    LS.set("testObject", testObject);
+    element.innerHTML = `testObject.a is ${testObject.a}`;
+  };
+  element.addEventListener("click", () => setTestObject(testObject.a + 1));
+  setTestObject(testObject.a);
+}
+
 LS.onReady().then(() => {
   setupCounter(document.querySelector<HTMLButtonElement>("#counter")!);
+  setupTestObject(document.querySelector<HTMLButtonElement>("#testObject")!);
 });
 
 LS.onReady().then(async () => {

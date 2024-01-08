@@ -5,10 +5,7 @@ export enum ErrorMessage {
   NOT_READY = "IndexedDB is not ready, please handle in the onReady event",
 }
 
-export function EIndexedDB(
-  name = "asyncStorage",
-  version = 1
-): StorageEngine | null {
+export function EIndexedDB(name = "asyncStorage", version = 1) {
   const objectStoreName = "asyncStorage";
 
   const readyCallbacks: (() => void)[] = [];
@@ -40,7 +37,8 @@ export function EIndexedDB(
     return null;
   }
 
-  const storageEngine: StorageEngine = {
+  const storageEngine: StorageEngine<true> = {
+    supportObject: true,
     onReady() {
       return new Promise((resolve) => {
         if (idbDatabase) {

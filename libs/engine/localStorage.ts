@@ -1,7 +1,7 @@
 import { CusLog } from "../../utils/tools";
 import type { StorageEngine } from "../asyncStorage";
 
-export function ELocalStorage(name = "LS"): StorageEngine | null {
+export function ELocalStorage(name = "LS") {
   let ready = false;
   try {
     const testString = "test";
@@ -18,15 +18,18 @@ export function ELocalStorage(name = "LS"): StorageEngine | null {
     return null;
   }
 
-  return {
-    async getItem(key: string) {
+  const storageEngine: StorageEngine<false> = {
+    supportObject: false,
+    async getItem(key) {
       return localStorage.getItem(`${name}_${key}`);
     },
-    async setItem(key: string, value: string) {
+    async setItem(key, value) {
       return localStorage.setItem(`${name}_${key}`, value);
     },
-    async removeItem(key: string) {
+    async removeItem(key) {
       return localStorage.removeItem(`${name}_${key}`);
     },
   };
+
+  return storageEngine;
 }

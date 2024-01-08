@@ -4,11 +4,17 @@ export enum ErrorMessage {
   NOT_ENGINE = "No storage engine",
 }
 
-export interface StorageEngine {
-  setItem: (key: string, value: string) => Promise<void> | void;
+export interface StorageEngine<SO extends boolean> {
+  supportObject: SO;
+  setItem: (
+    key: string,
+    value: SO extends true ? Object : string
+  ) => Promise<void> | void;
   getItem: (
     key: string
-  ) => Promise<string | null | undefined> | string | null | undefined;
+  ) => SO extends true
+    ? Object
+    : Promise<string | null | undefined> | string | null | undefined;
   removeItem: (key: string) => Promise<void> | void;
   onReady?: () => Promise<void>;
 }
@@ -24,7 +30,11 @@ interface Option<T> {
 
 export function createAsyncStorage<T extends JSONConstraint>(
   initialData: T,
-  engines: (StorageEngine | (() => StorageEngine | null) | null)[],
+  engines: (
+    | StorageEngine<boolean>
+    | (() => StorageEngine<boolean> | null)
+    | null
+  )[],
   option: Option<T> = {}
 ) {
   type Key = keyof T;
@@ -83,6 +93,11 @@ export function createAsyncStorage<T extends JSONConstraint>(
           ...value,
         };
       }
+
+      if (_engine.supportObject && !secretKey) {
+        return _engine.setItem(getHashKey(key), _value);
+      }
+
       let valueStr = JSON.stringify(_value);
       if (secretKey) {
         valueStr = EncryptFn(valueStr, secretKey);
@@ -93,23 +108,28 @@ export function createAsyncStorage<T extends JSONConstraint>(
       if (!_engine) {
         return Promise.reject(new Error(ErrorMessage.NOT_ENGINE));
       }
-      const str = await _engine.getItem(getHashKey(key));
-      if (str === null || str === undefined) {
+      const _value = await _engine.getItem(getHashKey(key));
+      if (_value === null || _value === undefined) {
         return initialData[key];
       }
-      if (secretKey) {
+      if (_engine.supportObject && !secretKey) {
+        return _value as any;
+      }
+      if (typeof _value === "string") {
+        if (secretKey) {
+          try {
+            return JSON.parse(DecryptFn(_value, secretKey));
+          } catch (error) {
+            console.error(key, error);
+          }
+        }
         try {
-          return JSON.parse(DecryptFn(str, secretKey));
+          return JSON.parse(_value);
         } catch (error) {
-          console.error(key, error);
+          console.warn(key, error);
         }
       }
-      try {
-        return JSON.parse(str);
-      } catch (error) {
-        console.error(key, error);
-      }
-      return str as any;
+      return _value as any;
     },
     remove(key: Key) {
       if (!_engine) {

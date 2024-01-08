@@ -1,7 +1,7 @@
 import { CusLog } from "../../utils/tools";
 import type { StorageEngine } from "../asyncStorage";
 
-export function ECookie(name = "LS"): StorageEngine | null {
+export function ECookie(name = "LS") {
   let ready = false;
   try {
     const testString = "test=test";
@@ -17,7 +17,8 @@ export function ECookie(name = "LS"): StorageEngine | null {
     return null;
   }
 
-  const storageEngine: StorageEngine = {
+  const storageEngine: StorageEngine<false> = {
+    supportObject: false,
     getItem(key) {
       return (
         decodeURIComponent(
