@@ -36,13 +36,13 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
 
 async function setupCounter(element: HTMLButtonElement) {
   let counter = await LS.get("counter");
-  const setCounter = (count: number) => {
+  const setCounter = async (count: number) => {
     counter = count;
-    LS.set("counter", counter);
+    await LS.set("counter", counter);
     element.innerHTML = `count is ${counter}`;
   };
   element.addEventListener("click", () => setCounter(counter + 1));
-  setCounter(counter);
+  await setCounter(counter);
 }
 
 async function setupTestObject(element: HTMLButtonElement) {
@@ -56,18 +56,11 @@ async function setupTestObject(element: HTMLButtonElement) {
   setTestObject(testObject.a);
 }
 
-LS.onReady().then(() => {
-  setupCounter(document.querySelector<HTMLButtonElement>("#counter")!);
+LS.onReady().then(async () => {
+  await setupCounter(document.querySelector<HTMLButtonElement>("#counter")!);
+  LS.subscribe(async () => {
+    const counter = await LS.get("counter");
+    console.log("subscribe counter:", counter);
+  }, ["counter"]);
   setupTestObject(document.querySelector<HTMLButtonElement>("#testObject")!);
-});
-
-LS.onReady().then(async () => {
-  console.log(await LS.get("a"));
-  await LS.set("a", "a3");
-  console.log(await LS.get("a"));
-});
-LS.onReady().then(async () => {
-  console.log(await LS.get("b"));
-  await LS.set("b", "b1");
-  console.log(await LS.get("b"));
 });

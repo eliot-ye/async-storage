@@ -1,7 +1,8 @@
 import { AESDecrypt, AESEncrypt, MD5 } from "../utils/encoding";
+import { debounce, getOnlyStr } from "../utils/tools";
 
-export enum ErrorMessage {
-  NOT_ENGINE = "No storage engine",
+interface SubscribeFn {
+  (): void;
 }
 
 export interface StorageEngine<SO extends boolean> {
@@ -26,6 +27,10 @@ interface Option<T> {
   enableHashKey?: boolean;
   HashFn?: (message: string) => string;
   increments?: (keyof T)[];
+}
+
+export enum ErrorMessage {
+  NOT_ENGINE = "No storage engine",
 }
 
 export function createAsyncStorage<T extends JSONConstraint>(
@@ -73,6 +78,38 @@ export function createAsyncStorage<T extends JSONConstraint>(
     return _key;
   }
 
+  const subscribeMap: {
+    [id: string]: { fn: SubscribeFn; keys?: Key[] } | undefined;
+  } = {};
+  const subscribeIds: string[] = [];
+  let effectKeys: Key[] = [];
+  const effectHandler = debounce(
+    () => {
+      subscribeIds.forEach((_id) => {
+        const subscribe = subscribeMap[_id];
+        let hasSubscribe = false;
+        if (subscribe?.keys) {
+          for (const _key of effectKeys) {
+            if (subscribe.keys.includes(_key)) {
+              hasSubscribe = true;
+            }
+          }
+        } else {
+          hasSubscribe = true;
+        }
+        if (subscribe && hasSubscribe) {
+          try {
+            subscribe.fn();
+          } catch (error) {
+            console.error(`subscribe (id: ${_id}) error:`, error);
+          }
+        }
+      });
+      effectKeys = [];
+    },
+    { wait: 0 }
+  );
+
   return {
     async onReady() {
       if (ready) {
@@ -95,14 +132,17 @@ export function createAsyncStorage<T extends JSONConstraint>(
       }
 
       if (_engine.supportObject && !secretKey) {
-        return _engine.setItem(getHashKey(key), _value);
+        await _engine.setItem(getHashKey(key), _value);
+      } else {
+        let valueStr = JSON.stringify(_value);
+        if (secretKey) {
+          valueStr = EncryptFn(valueStr, secretKey);
+        }
+        await _engine.setItem(getHashKey(key), valueStr);
       }
 
-      let valueStr = JSON.stringify(_value);
-      if (secretKey) {
-        valueStr = EncryptFn(valueStr, secretKey);
-      }
-      return _engine.setItem(getHashKey(key), valueStr);
+      effectKeys.push(key);
+      effectHandler();
     },
     async get<K extends Key>(key: K): Promise<T[K]> {
       if (!_engine) {
@@ -136,6 +176,39 @@ export function createAsyncStorage<T extends JSONConstraint>(
         return Promise.reject(new Error(ErrorMessage.NOT_ENGINE));
       }
       return _engine.removeItem(getHashKey(key));
+    },
+
+    /**
+     * @param fn - 订阅函数
+     * - 初始化时会执行一次
+     * - 使用 `set` 时，内部在更新数据后才触发订阅函数，此时 `get` 会获取最新的数据。
+     * - 短时间内多次使用 `set` 时，会触发防抖处理，订阅函数只执行一次。
+     * @param keys - 订阅属性
+     * - 只有订阅的属性发生了更改才触发执行订阅函数。如果不传入该参数，则所有属性更改都会执行。
+     * - 如果传入空数组，则订阅函数只执行一次，并且不会返回 `unsubscribe`
+     * @returns function `unsubscribe`
+     */
+    subscribe<K extends Key>(fn: SubscribeFn, keys?: K[]) {
+      try {
+        fn();
+      } catch (error) {
+        console.error(`subscribe error:`, error);
+      }
+
+      if (keys?.length === 0) {
+        return;
+      }
+      const id = getOnlyStr(subscribeIds);
+      subscribeIds.push(id);
+      subscribeMap[id] = {
+        fn,
+        keys,
+      };
+
+      return () => {
+        subscribeMap[id] = undefined;
+        subscribeIds.splice(subscribeIds.indexOf(id), 1);
+      };
     },
   };
 }
