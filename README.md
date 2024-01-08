@@ -35,16 +35,35 @@ async function getCounter() {
 
   // 获取数据
   const value1 = await LS.get("counter"); // 0
+  return value1;
+}
+
+async function setCounter() {
+  // 如果存储引擎为异步，则有可能需要等待存储引擎的初始化完成
+  await LS.onReady();
 
   // 设置数据
   await LS.set("counter", 2);
 
   // 获取数据
   const value2 = await LS.get("counter"); // 2
+}
+
+async function setCounter() {
+  // 如果存储引擎为异步，则有可能需要等待存储引擎的初始化完成
+  await LS.onReady();
 
   // 删除数据
-  LS.remove("counter");
+  await LS.remove("counter");
 }
+
+LS.onReady().then(()=>{
+  // 订阅 counter 数据变更
+  LS.subscribe(async () => {
+    const counter = await LS.get("counter");
+    console.log("subscribe counter:", counter);
+  }, ["counter"]);
+});
 ```
 
 ### 加密
