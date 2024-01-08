@@ -10,7 +10,7 @@ const LS = createAsyncStorage(
     b: "b",
     testObject: { a: 1, b: 2 },
   },
-  [EIndexedDB()]
+  [EIndexedDB(), localStorage]
 );
 
 document.querySelector<HTMLDivElement>("#app")!.innerHTML = `

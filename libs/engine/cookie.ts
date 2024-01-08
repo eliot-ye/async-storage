@@ -17,7 +17,7 @@ export function ECookie(name = "LS") {
     return null;
   }
 
-  const storageEngine: StorageEngine<false> = {
+  const storageEngine: StorageEngine = {
     supportObject: false,
     getItem(key) {
       return (

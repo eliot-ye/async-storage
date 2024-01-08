@@ -37,7 +37,7 @@ export function EIndexedDB(name = "asyncStorage", version = 1) {
     return null;
   }
 
-  const storageEngine: StorageEngine<true> = {
+  const storageEngine: StorageEngine = {
     supportObject: true,
     onReady() {
       return new Promise((resolve) => {

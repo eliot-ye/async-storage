@@ -18,8 +18,7 @@ export function ELocalStorage(name = "LS") {
     return null;
   }
 
-  const storageEngine: StorageEngine<false> = {
-    supportObject: false,
+  const storageEngine: StorageEngine = {
     async getItem(key) {
       return localStorage.getItem(`${name}_${key}`);
     },

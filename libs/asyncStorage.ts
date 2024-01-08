@@ -5,17 +5,13 @@ interface SubscribeFn {
   (): void;
 }
 
-export interface StorageEngine<SO extends boolean> {
-  supportObject: SO;
-  setItem: (
-    key: string,
-    value: SO extends true ? Object : string
-  ) => Promise<void> | void;
+export interface StorageEngine {
+  /** 配置是否支持对象存储，如果为 true 则 setItem 的 value 值可能是 JSON，否则为字符串存储 */
+  supportObject?: boolean;
+  setItem: (key: string, value: any) => Promise<void> | void;
   getItem: (
     key: string
-  ) => SO extends true
-    ? Object
-    : Promise<string | null | undefined> | string | null | undefined;
+  ) => Promise<any | null | undefined> | any | null | undefined;
   removeItem: (key: string) => Promise<void> | void;
   onReady?: () => Promise<void>;
 }
@@ -35,11 +31,7 @@ export enum ErrorMessage {
 
 export function createAsyncStorage<T extends JSONConstraint>(
   initialData: T,
-  engines: (
-    | StorageEngine<boolean>
-    | (() => StorageEngine<boolean> | null)
-    | null
-  )[],
+  engines: (StorageEngine | (() => StorageEngine | null) | null)[],
   option: Option<T> = {}
 ) {
   type Key = keyof T;

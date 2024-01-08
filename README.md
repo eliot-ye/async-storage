@@ -89,10 +89,12 @@ const LS = createAsyncStorage(
 
 ```ts
 interface StorageEngine {
-  setItem: (key: string, value: string) => Promise<void> | void;
+  /** 配置是否支持对象存储，如果为 true 则 setItem 的 value 值可能是 JSON，否则为字符串存储 */
+  supportObject?: boolean;
+  setItem: (key: string, value: any) => Promise<void> | void;
   getItem: (
     key: string
-  ) => Promise<string | null | undefined> | string | null | undefined;
+  ) => Promise<any | null | undefined> | any | null | undefined;
   removeItem: (key: string) => Promise<void> | void;
   onReady?: () => Promise<void>;
 }
@@ -103,7 +105,7 @@ interface StorageEngine {
 ```ts
 import type { StorageEngine } from "gpl-async-storage";
 
-export function ELocalStorage(name = "LS"): StorageEngine | null {
+export function ELocalStorage(name = "LS") {
   let ready = false;
   try {
     const testString = "test";
@@ -113,24 +115,26 @@ export function ELocalStorage(name = "LS"): StorageEngine | null {
       ready = true;
     }
   } catch (error) {
-    console.error("ELocalStorage", "unready", error);
+    CusLog.error("ELocalStorage", "unready", error);
   }
 
   if (!ready) {
     return null;
   }
 
-  return {
-    async getItem(key: string) {
+  const storageEngine: StorageEngine = {
+    async getItem(key) {
       return localStorage.getItem(`${name}_${key}`);
     },
-    async setItem(key: string, value: string) {
+    async setItem(key, value) {
       return localStorage.setItem(`${name}_${key}`, value);
     },
-    async removeItem(key: string) {
+    async removeItem(key) {
       return localStorage.removeItem(`${name}_${key}`);
     },
   };
+
+  return storageEngine;
 }
 ```
 
