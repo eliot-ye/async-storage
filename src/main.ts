@@ -1,5 +1,6 @@
 import "./style.css";
 import { createAsyncStorage, EIndexedDB } from "../libs";
+import { AESDecrypt, AESEncrypt } from "./utils/encoding";
 
 const LS = createAsyncStorage(
   {
@@ -59,4 +60,24 @@ LS.onReady().then(async () => {
   }
   setupCounter(document.querySelector<HTMLButtonElement>("#counter")!);
   setupTestObject(document.querySelector<HTMLButtonElement>("#testObject")!);
+});
+
+const LSSecret = createAsyncStorage(
+  {
+    counter: 0,
+    a: "a",
+    b: "b",
+    testObject: { a: 1, b: 2 },
+  },
+  [EIndexedDB("LSSecret")],
+  {
+    secretKey: "123456",
+    DecryptFn: AESDecrypt,
+    EncryptFn: AESEncrypt,
+    enableHashKey: true,
+  }
+);
+LSSecret.onReady().then(async () => {
+  await LSSecret.set("a", "a2");
+  console.log(await LSSecret.get("a"));
 });

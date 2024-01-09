@@ -68,8 +68,18 @@ LS.onReady().then(()=>{
 
 ### 加密
 
+从 v1.3.0 开始，不再内置加密模块，需要自行引入
+
 ```js
 import { createAsyncStorage, EIndexedDB } from "gpl-async-storage";
+import { AES, enc } from "crypto-js";
+
+function AESEncrypt(message: string, key: string) {
+  return AES.encrypt(message, key).toString();
+}
+function AESDecrypt(message: string, key: string) {
+  return AES.decrypt(message, key).toString(enc.Utf8);
+}
 
 const LS = createAsyncStorage(
   {
@@ -79,6 +89,11 @@ const LS = createAsyncStorage(
   {
     // 加密密钥，有值则会加密存储
     secretKey: "secret",
+    EncryptFn: AESEncrypt,
+    DecryptFn: AESDecrypt,
+
+    // 所有 key 使用MD5值
+    enableHashKey: true,
   }
 );
 ```

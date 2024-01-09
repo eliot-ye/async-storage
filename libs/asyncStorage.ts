@@ -1,4 +1,4 @@
-import { AESDecrypt, AESEncrypt, MD5 } from "./utils/encoding";
+import { MD5 } from "./utils/encoding";
 import { debounce, getOnlyStr } from "./utils/tools";
 
 interface SubscribeFn {
@@ -20,6 +20,7 @@ interface Option<T> {
   secretKey?: string;
   EncryptFn?: (message: string, key: string) => string;
   DecryptFn?: (message: string, key: string) => string;
+  /** 是否开启 key 加密，如果开启，所有 key 都会使用MD5值 */
   enableHashKey?: boolean;
   HashFn?: (message: string) => string;
   increments?: (keyof T)[];
@@ -56,8 +57,8 @@ export function createAsyncStorage<T extends JSONConstraint>(
   const {
     secretKey,
     enableHashKey,
-    EncryptFn = AESEncrypt,
-    DecryptFn = AESDecrypt,
+    EncryptFn,
+    DecryptFn,
     HashFn = MD5,
     increments = [],
   } = option;
@@ -127,7 +128,7 @@ export function createAsyncStorage<T extends JSONConstraint>(
         await _engine.setItem(getHashKey(key), _value);
       } else {
         let valueStr = JSON.stringify(_value);
-        if (secretKey) {
+        if (secretKey && EncryptFn) {
           valueStr = EncryptFn(valueStr, secretKey);
         }
         await _engine.setItem(getHashKey(key), valueStr);
@@ -148,7 +149,7 @@ export function createAsyncStorage<T extends JSONConstraint>(
         return _value as any;
       }
       if (typeof _value === "string") {
-        if (secretKey) {
+        if (secretKey && DecryptFn) {
           try {
             return JSON.parse(DecryptFn(_value, secretKey));
           } catch (error) {
