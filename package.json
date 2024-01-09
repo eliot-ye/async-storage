@@ -1,6 +1,6 @@
 {
   "name": "gpl-async-storage",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "一个异步 API 的本地存储库",
   "license": "MulanPSL-2.0",
   "author": {
@@ -22,29 +22,29 @@
   "files": [
     "dist"
   ],
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
-  "typings": "./dist/index.d.ts",
+  "main": "./index.cjs",
+  "module": "./index.js",
+  "typings": "./index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs",
-      "types": "./dist/index.d.ts"
+      "import": "./index.js",
+      "require": "./index.cjs",
+      "types": "./index.d.ts"
     },
     "./cookie": {
-      "import": "./dist/cookie.js",
-      "require": "./dist/cookie.cjs",
-      "types": "./dist/cookie.d.ts"
+      "import": "./cookie.js",
+      "require": "./cookie.cjs",
+      "types": "./cookie.d.ts"
     },
     "./localStorage": {
-      "import": "./dist/localStorage.js",
-      "require": "./dist/localStorage.cjs",
-      "types": "./dist/localStorage.d.ts"
+      "import": "./localStorage.js",
+      "require": "./localStorage.cjs",
+      "types": "./localStorage.d.ts"
     },
     "./indexedDB": {
-      "import": "./dist/indexedDB.js",
-      "require": "./dist/indexedDB.cjs",
-      "types": "./dist/indexedDB.d.ts"
+      "import": "./indexedDB.js",
+      "require": "./indexedDB.cjs",
+      "types": "./indexedDB.d.ts"
     }
   },
   "scripts": {
