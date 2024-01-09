@@ -1,5 +1,5 @@
-import { AESDecrypt, AESEncrypt, MD5 } from "../utils/encoding";
-import { debounce, getOnlyStr } from "../utils/tools";
+import { AESDecrypt, AESEncrypt, MD5 } from "./utils/encoding";
+import { debounce, getOnlyStr } from "./utils/tools";
 
 interface SubscribeFn {
   (): void;

@@ -1,4 +1,4 @@
-import { CusLog } from "../../utils/tools";
+import { CusLog } from "../utils/tools";
 import type { StorageEngine } from "../asyncStorage";
 
 export enum ErrorMessage {
