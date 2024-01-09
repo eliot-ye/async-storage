@@ -57,10 +57,14 @@ async function setupTestObject(element: HTMLButtonElement) {
 }
 
 LS.onReady().then(async () => {
-  await setupCounter(document.querySelector<HTMLButtonElement>("#counter")!);
   LS.subscribe(async () => {
     const counter = await LS.get("counter");
     console.log("subscribe counter:", counter);
   }, ["counter"]);
+  for (let index = 0; index < 10; index++) {
+    const counter = await LS.get("counter");
+    await LS.set("counter", counter + 1);
+  }
+  setupCounter(document.querySelector<HTMLButtonElement>("#counter")!);
   setupTestObject(document.querySelector<HTMLButtonElement>("#testObject")!);
 });
