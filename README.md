@@ -68,7 +68,7 @@ LS.onReady().then(()=>{
 
 ### 加密
 
-从 v1.3.0 开始，不再内置加密模块，需要自行引入
+***注意：从 v1.3.0 开始，不再内置加密模块，需要自行引入***
 
 ```js
 import { createAsyncStorage, EIndexedDB } from "gpl-async-storage";
@@ -168,16 +168,34 @@ const LS = createAsyncStorage(
 
 ### react-native
 
-在 react-native 中使用 async-storage，可直接使用 `@react-native-async-storage/async-storage` 库作为存储引擎。
+在 react-native 中可直接使用 `@react-native-async-storage/async-storage` 库作为存储引擎。
 
-```js
+```ts
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createAsyncStorage } from "gpl-async-storage";
+import {useEffect, useState} from 'react';
 
-const LS = createAsyncStorage(
-  {
-    counter: 0,
-  },
+const initialData = {
+  counter: 0,
+}
+
+export const LS = createAsyncStorage(
+  initialData,
   [AsyncStorage]
 );
+
+// 封装 react hooks 可实现使用 LS.set 更新数据时，hook 值实时更新
+export function useAsyncStorage<K extends keyof typeof initialData>(key: K) {
+  const [state, setState] = useState(initialData[key]);
+
+  useEffect(() => {
+    return LS.subscribe(async () => {
+      await LS.onReady();
+      const value = await LS.get(key);
+      setState(value);
+    }, [key]);
+  }, [key]);
+
+  return state;
+}
 ```
