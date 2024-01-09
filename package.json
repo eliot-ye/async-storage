@@ -1,6 +1,6 @@
 {
   "name": "gpl-async-storage",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "一个异步 API 的本地存储库",
   "license": "MulanPSL-2.0",
   "author": {
@@ -20,7 +20,12 @@
   ],
   "type": "module",
   "files": [
-    "dist"
+    "index",
+    "asyncStorage",
+    "cookie",
+    "localStorage",
+    "indexedDB",
+    "tools-*"
   ],
   "main": "./index.cjs",
   "module": "./index.js",
