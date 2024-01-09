@@ -59,6 +59,7 @@
     "vite-plugin-dts": "^3.7.0"
   },
   "dependencies": {
-    "crypto-js": "^4.2.0"
+    "crypto-js": "^4.2.0",
+    "react-native-get-random-values": "^1.10.0"
   }
 }

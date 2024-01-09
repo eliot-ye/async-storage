@@ -15,7 +15,7 @@ export default defineConfig({
       name: "AsyncStorage",
     },
     rollupOptions: {
-      external: ["crypto-js"],
+      external: ["crypto-js", "react-native-get-random-values"],
     },
   },
   plugins: [dts({ rollupTypes: true })],

@@ -1,3 +1,4 @@
+import "react-native-get-random-values";
 import { MD5 as MD5Hash, AES, enc } from "crypto-js";
 
 export function MD5(message: string) {
