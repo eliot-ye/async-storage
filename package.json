@@ -20,12 +20,12 @@
   ],
   "type": "module",
   "files": [
-    "index",
-    "asyncStorage",
-    "cookie",
-    "localStorage",
-    "indexedDB",
-    "tools-*"
+    "index.*",
+    "asyncStorage.*",
+    "cookie.*",
+    "localStorage.*",
+    "indexedDB.*",
+    "tools-*.*"
   ],
   "main": "./index.cjs",
   "module": "./index.js",
