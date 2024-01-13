@@ -1,9 +1,7 @@
 import { MD5 } from "./utils/encoding";
 import { debounce, getOnlyStr } from "./utils/tools";
 
-interface SubscribeFn {
-  (): void;
-}
+type SubscribeFn = () => void;
 
 export interface StorageEngine {
   /** 配置是否支持对象存储，如果为 true 则 setItem 的 value 值可能是 JSON，否则为字符串存储 */
@@ -145,9 +143,6 @@ export function createAsyncStorage<T extends JSONConstraint>(
       if (_value === null || _value === undefined) {
         return initialData[key];
       }
-      if (_engine.supportObject && !secretKey) {
-        return _value as any;
-      }
       if (typeof _value === "string") {
         if (secretKey && DecryptFn) {
           try {
@@ -156,13 +151,13 @@ export function createAsyncStorage<T extends JSONConstraint>(
             console.error(key, error);
           }
         }
-        try {
-          return JSON.parse(_value);
-        } catch (error) {
-          console.warn(key, error);
-        }
       }
-      return _value as any;
+      try {
+        return JSON.parse(_value);
+      } catch (error) {
+        console.warn(key, error);
+      }
+      return _value;
     },
     remove(key: Key) {
       if (!_engine) {
