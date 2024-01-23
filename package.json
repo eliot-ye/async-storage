@@ -1,6 +1,6 @@
 {
   "name": "gpl-async-storage",
-  "version": "1.3.1",
+  "version": "1.4.0",
   "description": "一个异步 API 的本地存储库",
   "license": "MulanPSL-2.0",
   "author": {
