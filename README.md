@@ -138,13 +138,13 @@ export function ELocalStorage(name = "LS") {
   }
 
   const storageEngine: StorageEngine = {
-    async getItem(key) {
+    getItem(key) {
       return localStorage.getItem(`${name}_${key}`);
     },
-    async setItem(key, value) {
+    setItem(key, value) {
       return localStorage.setItem(`${name}_${key}`, value);
     },
-    async removeItem(key) {
+    removeItem(key) {
       return localStorage.removeItem(`${name}_${key}`);
     },
   };
