@@ -17,7 +17,7 @@ export function ECookie(name = "LS") {
     return null;
   }
 
-  const storageEngine: StorageEngine = {
+  const storageEngine: StorageEngine<false> = {
     supportObject: false,
     getItem(key) {
       return (
@@ -37,19 +37,13 @@ export function ECookie(name = "LS") {
       );
     },
     setItem(key, value) {
-      return new Promise((resolve, reject) => {
-        if (!key || /^(?:expires|max\-age|path|domain|secure)$/i.test(key)) {
-          return reject(new Error("Invalid key or attribute name."));
-        }
-        const sExpires = "; expires=Fri, 31 Dec 9999 23:59:59 GMT";
-        document.cookie =
-          encodeURIComponent(`${name}_${key}`) +
-          "=" +
-          encodeURIComponent(value) +
-          sExpires +
-          "; secure";
-        resolve();
-      });
+      const sExpires = "; expires=Fri, 31 Dec 9999 23:59:59 GMT";
+      document.cookie =
+        encodeURIComponent(`${name}_${key}`) +
+        "=" +
+        encodeURIComponent(value) +
+        sExpires +
+        "; secure";
     },
     removeItem(key) {
       document.cookie =

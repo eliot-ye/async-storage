@@ -18,7 +18,7 @@ export function ELocalStorage(name = "LS") {
     return null;
   }
 
-  const storageEngine: StorageEngine = {
+  const storageEngine: StorageEngine<false> = {
     getItem(key) {
       return localStorage.getItem(`${name}_${key}`);
     },
