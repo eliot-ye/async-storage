@@ -11,6 +11,7 @@ export default defineConfig({
       entry: {
         index: resolve(__dirname, "libs/index.ts"),
         asyncStorage: resolve(__dirname, "libs/asyncStorage.ts"),
+        syncStorage: resolve(__dirname, "libs/syncStorage.ts"),
         cookie: resolve(__dirname, "libs/engine/cookie.ts"),
         localStorage: resolve(__dirname, "libs/engine/localStorage.ts"),
         indexedDB: resolve(__dirname, "libs/engine/indexedDB.ts"),

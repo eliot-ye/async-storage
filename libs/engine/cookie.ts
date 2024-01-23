@@ -1,5 +1,5 @@
 import { CusLog } from "../utils/tools";
-import type { StorageEngine } from "../asyncStorage";
+import type { StorageEngine } from "../types";
 
 export function ECookie(name = "LS") {
   let ready = false;

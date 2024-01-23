@@ -103,14 +103,19 @@ const LS = createAsyncStorage(
 自定义存储引擎需要实现 `StorageEngine` 接口
 
 ```ts
-interface StorageEngine {
+export interface StorageEngine<IsAsync extends boolean = true> {
   /** 配置是否支持对象存储，如果为 true 则 setItem 的 value 值可能是 JSON，否则为字符串存储 */
   supportObject?: boolean;
-  setItem: (key: string, value: any) => Promise<void> | void;
+  setItem: (
+    key: string,
+    value: any
+  ) => IsAsync extends true ? Promise<void> : void;
   getItem: (
     key: string
-  ) => Promise<any | null | undefined> | any | null | undefined;
-  removeItem: (key: string) => Promise<void> | void;
+  ) => IsAsync extends true
+    ? Promise<any | null | undefined>
+    : any | null | undefined;
+  removeItem: (key: string) => IsAsync extends true ? Promise<void> : void;
   onReady?: () => Promise<void>;
 }
 ```
@@ -137,7 +142,7 @@ export function ELocalStorage(name = "LS") {
     return null;
   }
 
-  const storageEngine: StorageEngine = {
+  const storageEngine: StorageEngine<false> = {
     getItem(key) {
       return localStorage.getItem(`${name}_${key}`);
     },

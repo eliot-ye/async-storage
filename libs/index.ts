@@ -1,4 +1,6 @@
 export * from "./asyncStorage";
+export * from "./syncStorage";
+export { ErrorMessage } from "./types";
 export {
   EIndexedDB,
   ErrorMessage as EIndexedDBErrorMessage,

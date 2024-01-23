@@ -8,11 +8,11 @@ import {
 import { MD5 } from "./utils/encoding";
 import { debounce, getOnlyStr } from "./utils/tools";
 
-export function createAsyncStorage<T extends JSONConstraint>(
+export function createSyncStorage<T extends JSONConstraint>(
   initialData: T,
   engines: (
-    | StorageEngine<boolean>
-    | (() => StorageEngine<boolean> | null)
+    | StorageEngine<false>
+    | (() => StorageEngine<false> | null)
     | null
   )[],
   option: Option<T> = {}
@@ -22,19 +22,6 @@ export function createAsyncStorage<T extends JSONConstraint>(
   const _engines = engines.filter((e) => e !== null);
   const _engine =
     typeof _engines[0] === "function" ? _engines[0]() : _engines[0];
-
-  let ready = false;
-  const readyCallbacks: (() => void)[] = [];
-  if (_engine) {
-    if (_engine.onReady) {
-      _engine.onReady().then(() => {
-        ready = true;
-        readyCallbacks.forEach((cb) => cb());
-      });
-    } else {
-      ready = true;
-    }
-  }
 
   const {
     secretKey,
@@ -86,44 +73,36 @@ export function createAsyncStorage<T extends JSONConstraint>(
   );
 
   return {
-    async onReady() {
-      if (ready) {
-        return;
-      }
-      return new Promise<void>((resolve) => {
-        readyCallbacks.push(resolve);
-      });
-    },
-    async set<K extends Key>(key: K, value: T[K]) {
+    set<K extends Key>(key: K, value: T[K]) {
       if (!_engine) {
-        return Promise.reject(new Error(ErrorMessage.NOT_ENGINE));
+        return new Error(ErrorMessage.NOT_ENGINE);
       }
       let _value = value;
       if (increments.includes(key)) {
         _value = {
-          ...(await this.get(key)),
+          ...this.get(key),
           ...value,
         };
       }
 
       if (_engine.supportObject && !secretKey) {
-        await _engine.setItem(getHashKey(key), _value);
+        _engine.setItem(getHashKey(key), _value);
       } else {
         let valueStr = JSON.stringify(_value);
         if (secretKey && EncryptFn) {
           valueStr = EncryptFn(valueStr, secretKey);
         }
-        await _engine.setItem(getHashKey(key), valueStr);
+        _engine.setItem(getHashKey(key), valueStr);
       }
 
       effectKeys.push(key);
       effectHandler();
     },
-    async get<K extends Key>(key: K): Promise<T[K]> {
+    get<K extends Key>(key: K): T[K] {
       if (!_engine) {
-        return Promise.reject(new Error(ErrorMessage.NOT_ENGINE));
+        return new Error(ErrorMessage.NOT_ENGINE) as any;
       }
-      const _value = await _engine.getItem(getHashKey(key));
+      const _value = _engine.getItem(getHashKey(key));
       if (_value === null || _value === undefined) {
         return initialData[key];
       }
@@ -145,7 +124,7 @@ export function createAsyncStorage<T extends JSONConstraint>(
     },
     remove(key: Key) {
       if (!_engine) {
-        return Promise.reject(new Error(ErrorMessage.NOT_ENGINE));
+        return new Error(ErrorMessage.NOT_ENGINE);
       }
       return _engine.removeItem(getHashKey(key));
     },

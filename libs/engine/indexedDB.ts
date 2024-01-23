@@ -1,5 +1,5 @@
 import { CusLog } from "../utils/tools";
-import type { StorageEngine } from "../asyncStorage";
+import type { StorageEngine } from "../types";
 
 export enum ErrorMessage {
   NOT_READY = "IndexedDB is not ready, please handle in the onReady event",
