@@ -2,7 +2,7 @@ export type JSONConstraint = Record<string, any>;
 
 export type SubscribeFn = () => void;
 
-export interface StorageEngine<IsAsync extends boolean = true> {
+export interface StorageEngine<IsAsync extends boolean> {
   /** 配置是否支持对象存储，如果为 true 则 setItem 的 value 值可能是 JSON，否则为字符串存储 */
   supportObject?: boolean;
   setItem: (
@@ -15,7 +15,7 @@ export interface StorageEngine<IsAsync extends boolean = true> {
     ? Promise<any | null | undefined>
     : any | null | undefined;
   removeItem: (key: string) => IsAsync extends true ? Promise<void> : void;
-  onReady?: () => Promise<void>;
+  onReady: IsAsync extends true ? () => Promise<void> : undefined;
 }
 
 export interface Option<T> {

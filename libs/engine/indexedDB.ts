@@ -37,7 +37,7 @@ export function EIndexedDB(name = "asyncStorage", version = 1) {
     return null;
   }
 
-  const storageEngine: StorageEngine = {
+  const storageEngine: StorageEngine<true> = {
     // TODO: 目前测试在保存数组数据时会报错
     // supportObject: true,
     onReady() {

@@ -8,13 +8,9 @@ import {
 import { MD5 } from "./utils/encoding";
 import { debounce, getOnlyStr } from "./utils/tools";
 
-export function createAsyncStorage<T extends JSONConstraint>(
+export function createAsyncStorage<T extends JSONConstraint, B extends boolean>(
   initialData: T,
-  engines: (
-    | StorageEngine<boolean>
-    | (() => StorageEngine<boolean> | null)
-    | null
-  )[],
+  engines: (StorageEngine<B> | (() => StorageEngine<B> | null) | null)[],
   option: Option<T> = {}
 ) {
   type Key = keyof T;
@@ -96,7 +92,7 @@ export function createAsyncStorage<T extends JSONConstraint>(
     },
     async set<K extends Key>(key: K, value: T[K]) {
       if (!_engine) {
-        return Promise.reject(new Error(ErrorMessage.NOT_ENGINE));
+        return new Error(ErrorMessage.NOT_ENGINE);
       }
       let _value = value;
       if (increments.includes(key)) {

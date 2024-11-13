@@ -19,6 +19,7 @@ export function ECookie(name = "LS") {
 
   const storageEngine: StorageEngine<false> = {
     supportObject: false,
+    onReady: undefined,
     getItem(key) {
       return (
         decodeURIComponent(

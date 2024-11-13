@@ -19,6 +19,7 @@ export function ELocalStorage(name = "LS") {
   }
 
   const storageEngine: StorageEngine<false> = {
+    onReady: undefined,
     getItem(key) {
       return localStorage.getItem(`${name}_${key}`);
     },
