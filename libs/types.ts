@@ -15,7 +15,7 @@ export interface StorageEngine<IsAsync extends boolean> {
     ? Promise<any | null | undefined>
     : any | null | undefined;
   removeItem: (key: string) => IsAsync extends true ? Promise<void> : void;
-  onReady: IsAsync extends true ? () => Promise<void> : undefined;
+  onReady?: IsAsync extends true ? () => Promise<void> : undefined | null;
 }
 
 export interface Option<T> {

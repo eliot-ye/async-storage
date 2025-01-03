@@ -1,5 +1,5 @@
 import "./style.css";
-import { createAsyncStorage, EIndexedDB } from "../libs";
+import { createAsyncStorage, EIndexedDB, ELocalStorage } from "../libs";
 import { AESDecrypt, AESEncrypt } from "./utils/encoding";
 
 const LS = createAsyncStorage(
@@ -9,7 +9,7 @@ const LS = createAsyncStorage(
     b: "b",
     testObject: { a: 1, b: 2 },
   },
-  [EIndexedDB(), localStorage]
+  [EIndexedDB(), ELocalStorage()]
 );
 
 document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
