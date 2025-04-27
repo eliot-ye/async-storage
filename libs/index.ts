@@ -1,6 +1,7 @@
 export * from "./asyncStorage";
 export * from "./syncStorage";
 export { ErrorMessage } from "./types";
+export type { StorageEngine, JSONConstraint } from "./types";
 export {
   EIndexedDB,
   ErrorMessage as EIndexedDBErrorMessage,
