@@ -15,11 +15,6 @@ profile: `profile-maintenance` × `tier-small`（见 `.td-state/profile-tier.yam
 
 ### P0 · 线上稳定性与安全
 
-- [ ] [P0] 修复 subscribe 通知在并发 set 时丢失更新
-  - 根因：`effectKeys` 数组被多个 set 调用共享，防抖回调执行时 `effectKeys = []` 会清空其他 set 已 push 的 key（`libs/asyncStorage.ts` L56-82、L115-116）
-  - 修法路径：先加 characterization test 锁定现有（buggy）行为 → 改模型（改成 per-call keys 数组传入或引用计数 Set）→ 改测试
-  - 参考：本会话 td-explore 探索记录（a3 / c3 组）
-
 - [ ] [P0] 补 CI 冒烟
   - 现状：`package.json` 只有 `test: vitest run`，无任何 CI 配置
   - 目标：GitHub Actions 最少覆盖 `npm ci && npm run build && npm test && npm pack --dry-run`
@@ -52,6 +47,12 @@ profile: `profile-maintenance` × `tier-small`（见 `.td-state/profile-tier.yam
   - 参考：本会话 td-explore 探索记录（c4 组）
 
 ### P2 · 技术债与代码卫生
+
+- [x] [P2] 补 subscribe 并发 set 的 characterization test + spec 补语义
+  - 现状：`effectKeys` 是实例级共享闭包变量，`effectHandler` 结束时清空；单线程 JS 里"并发 set 丢更新"复现不出来（每次 set 重新 push，不会跨事件循环被清空）
+  - 目标：characterization test 锁定当前行为 + spec 补"effectHandler 触发后清空 effectKeys"语义；若未来复现出真实竞态再升级为修复
+  - 参考：本会话 td-explore 探索记录（2026-09-14）
+  - [x] change: add-subscribe-characterization-and-spec-gap
 
 - [ ] [P2] 合并 async/sync storage 的重复代码
   - 现状：`libs/asyncStorage.ts` 与 `libs/syncStorage.ts` 的 `getHashKey` / `subscribeMap` / `effectKeys` / `effectHandler` / `subscribe` / `get` 加密+JSON.parse 回退路径几乎逐行一致，共 ~40 行相同代码

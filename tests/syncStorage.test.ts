@@ -115,6 +115,69 @@ describe("createSyncStorage — 订阅与防抖", () => {
     await wait();
     expect(fn).toHaveBeenCalledTimes(1); // set 不再触发
   });
+
+  // 并发 set 各自 key 都被通知（对应 spec 新 Scenario）
+  // 同步版无真并发——用连续同步调用模拟"多个 set 共享一次 effectHandler 触发"
+  it("连续 set 不同 key 各自订阅都被通知（防抖窗口清空不影响匹配）", async () => {
+    const engine = createMockEngine(false);
+    const LS = createSyncStorage<{ a: number; b: number }>(
+      { a: 0, b: 0 },
+      [engine]
+    );
+    const fnA = vi.fn();
+    const fnB = vi.fn();
+    LS.subscribe(fnA, ["a"]);
+    LS.subscribe(fnB, ["b"]);
+    fnA.mockClear();
+    fnB.mockClear();
+    // 同一事件循环内连续两次 set——两次 push 都进 effectKeys，一次 effectHandler 通知
+    LS.set("a", 1);
+    LS.set("b", 2);
+    await wait();
+    expect(fnA).toHaveBeenCalled();
+    expect(fnB).toHaveBeenCalled();
+  });
+
+  // 连续快速 set 同一 key 不丢通知（对应既有 Scenario "多次 set 合并" 的断言补强）
+  it("连续快速 set 同一 key 防抖合并后订阅仍被调用", async () => {
+    const engine = createMockEngine(false);
+    const LS = createSyncStorage<{ counter: number }>({ counter: 0 }, [
+      engine,
+    ]);
+    const fn = vi.fn();
+    LS.subscribe(fn, ["counter"]);
+    fn.mockClear();
+    LS.set("counter", 1);
+    LS.set("counter", 2);
+    await wait();
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+
+  // 跨防抖批次 set 匹配独立（对应 spec 新 Scenario）
+  it("跨防抖批次 set：上一批 effectKeys 清空不影响后续 set 匹配", async () => {
+    const engine = createMockEngine(false);
+    const LS = createSyncStorage<{ a: number; b: number }>(
+      { a: 0, b: 0 },
+      [engine]
+    );
+    const fnA = vi.fn();
+    const fnB = vi.fn();
+    LS.subscribe(fnA, ["a"]);
+    LS.subscribe(fnB, ["b"]);
+    fnA.mockClear();
+    fnB.mockClear();
+    // 第一批：set("a", ...) 后等 timer 触发，effectKeys 被清空
+    LS.set("a", 1);
+    await wait();
+    expect(fnA).toHaveBeenCalled();
+    expect(fnB).not.toHaveBeenCalled();
+    fnA.mockClear();
+    fnB.mockClear();
+    // 第二批：effectKeys 已清空，set("b", ...) 的 key 匹配不受上一批影响
+    LS.set("b", 2);
+    await wait();
+    expect(fnB).toHaveBeenCalled();
+  });
 });
 
 describe("createSyncStorage — 无 engine 错误处理（quirky）", () => {
