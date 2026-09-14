@@ -1,19 +1,26 @@
 ## 关键链与缓冲
 
 **关键链**（按依赖顺序，最长路径）：
-1.1 → 2.1 → 2.2 → 3.1 → 3.2 → 3.3 → 3.4 → 4.1 → 5.1 → 6.1
+1.1 → 2.1 → 2.2 → 3.1 → 3.5 → 3.2 → 3.3 → 3.4 → 4.1 → 5.1 → 6.1
 
-**关键链总估时**：约 6 小时（1.1=20min + 2.1=30min + 2.2=30min + 3.1=30min + 3.2=60min + 3.3=60min + 3.4=60min + 4.1=60min + 5.1=60min + 6.1=30min）
+**关键链总估时**：约 6.5 小时（1.1=20min + 2.1=30min + 2.2=30min + 3.1=30min + 3.5=30min + 3.2=60min + 3.3=60min + 3.4=60min + 4.1=60min + 5.1=60min + 6.1=30min）
 
-**project buffer（tier-small = 20%）**：约 1.2 小时 → 折算为 6.2 任务（README 与文档完善 + 集成回归）。
+**project buffer（tier-small = 20%）**：约 1.3 小时 → 折算为 6.2 任务（README 与文档完善 + 集成回归）。
 
 **支流**（并行/独立，可插入 project buffer 前的间隙）：
 - 1.2（导出，30min）— 挂在 2.x 之后、3.x 之前
 - 2.3（types.ts 导出 SecretKeyEntry，15min）— 与 2.1/2.2 并列
+- 3.6（async/sync 校验路径单测，30min）— 挂在 3.5 之后、3.4 之前
 - 4.2（src/main.ts 示例更新，20min）— 与 5.1 并列
 - 4.3（integration.test 新增场景，40min）— 挂在 4.1 之后、5.1 之前
 
 **关键链末端保护**：6.x（最终验证）不允许压缩，任何前序延误都吸收到 buffer（6.2 任务吸收）。
+
+**合并入本 change 的安全契约强化（来自 explore 阶段 c2）**：
+- 触发原因：maintenance 视角下，当前 `asyncStorage.ts` L109 `if (secretKey && EncryptFn)` 会在只提供 `secretKey` 未提供 `EncryptFn` 时**静默走 JSON 明文分支**，线上用户可能以为加密了实际是明文落库（`constraints/human-in-loop.md` 通用基线第 2 类：安全契约）。
+- 用户裁决：合并进 secretKeys change 而非单独提一个小 change（一次改动、一次 review、一次版本发布）。
+- 影响面：新增 3.5（初始化校验）+ 3.6（校验路径单测）两个任务，均在 storage-core 内部；不改公共签名，只改初始化时的错误行为。
+- 兼容性判断：契约强化（`secretKey` 存在时必须同时提供 EncryptFn/DecryptFn），属"小破坏性"——之前"只传 secretKey"能跑（但走明文），之后会 throw；README 会显式警告。
 
 ---
 
@@ -104,6 +111,33 @@
   - 分系统影响：storage-core
   - 依赖：3.3
 
+- [ ] 3.5 在 `libs/asyncStorage.ts` 与 `libs/syncStorage.ts` 的工厂函数**初始化阶段**新增加密契约校验（合并自 explore c2）
+  - 文件：`libs/asyncStorage.ts`、`libs/syncStorage.ts`
+  - 风险：medium（错误路径新增，行为契约强化）
+  - 规则：
+    - 若 `option.secretKey` 存在，MUST 同时提供 `option.EncryptFn` 与 `option.DecryptFn`，否则工厂函数立即 `throw new Error(ErrorMessage.MISSING_ENCRYPT_FN)`（`ErrorMessage` enum 增补 `MISSING_ENCRYPT_FN = "secretKey is provided but EncryptFn/DecryptFn is missing; refusing to store plaintext under a secret-key path"`）。
+    - 若 `option.secretKeys` 存在且非空数组，MUST 同时提供 `option.EncryptFn` 与 `option.DecryptFn`，否则同样 throw。
+    - 若两者都未配置（或 `secretKeys` 为空数组），保持现状：走 `supportObject` 或 JSON 明文路径，不 throw。
+    - 校验在工厂函数 body 顶部执行（在 `readyCallbacks` / `subscribeMap` 等初始化之前），确保任何后续引用都基于契约成立的实例。
+  - 验证：
+    - `tsc --noEmit` 通过；`ErrorMessage.MISSING_ENCRYPT_FN` 常量在 `libs/types.ts` 中定义并导出。
+    - 新增单元测试覆盖 4 个 case（见 3.6）。
+    - 现有 characterization test 全部通过（既有测试都同时传了 secretKey + EncryptFn/DecryptFn 或都不传，无触发校验的 case）。
+  - 分系统影响：storage-core + types（ErrorMessage 枚举扩展）
+  - 依赖：1.2（`secretKeys` 字段先落地）
+
+- [ ] 3.6 新增 `tests/encryption-contract.test.ts` 覆盖 3.5 的初始化校验路径
+  - 文件：`tests/encryption-contract.test.ts`
+  - 风险：low（纯测试新增）
+  - 覆盖 4 个 Scenario（每个 Scenario 各测异步 + 同步两个版本，共 8 个 `it`）：
+    1. `secretKey` 存在、缺 `EncryptFn` → 工厂 throw `ErrorMessage.MISSING_ENCRYPT_FN`
+    2. `secretKey` 存在、缺 `DecryptFn` → 同上
+    3. `secretKeys` 非空、缺 `EncryptFn` → 同上
+    4. 两者都未配置 → 工厂正常返回实例，走 JSON 明文或 supportObject 路径
+  - 验证：`npx vitest run tests/encryption-contract.test.ts` 全部通过；测试中 `expect(() => createAsyncStorage(...)).toThrow(ErrorMessage.MISSING_ENCRYPT_FN)` 使用。
+  - 分系统影响：测试
+  - 依赖：3.5
+
 ---
 
 ## 4. 单元测试覆盖
@@ -176,13 +210,15 @@
 ```
 [1.1] 类型契约 (SecretKeyEntry)
    ├──> [1.2] Option 加 secretKeys 字段 + secretKey @deprecated
-   │        └──> [1.3] 导出 SecretKeyEntry
+   │        ├──> [1.3] 导出 SecretKeyEntry
+   │        └──> [3.5] 加密契约校验（secretKey/secretKeys + EncryptFn/DecryptFn 同时）
+   │                  └──> [3.6] encryption-contract.test.ts
    │
    └──> [2.1] generateSecretKey ──> [2.2] generateSecretKeys ──> [2.3] 导出
                                                                  └──> [2.4] 检查库不偷偷生成
-   
+
    [3.1] pickActiveKey / pickLegacyKey ──> [3.2] asyncStorage set ──> [3.3] asyncStorage get ──> [3.4] syncStorage set+get
-   
+
                                                               ┌──> [4.1] mockEncrypt/mockDecrypt 支持 metadata 头
                                                               │      └──> [4.2] secretkeys.test.ts ──> [4.3] integration.test.ts
                                                               │
@@ -192,10 +228,12 @@
         └──> [6.1] npm test + build ──> [6.2] version bump 1.6.0
 ```
 
-**关键链路径**（最长）：1.1 → 2.1 → 2.2 → 3.1 → 3.2 → 3.3 → 3.4 → 4.1 → 4.2 → 4.3 → 5.1 → 6.1 → 6.2
+**关键链路径**（最长）：1.1 → 2.1 → 2.2 → 3.1 → 3.5 → 3.2 → 3.3 → 3.4 → 4.1 → 4.2 → 4.3 → 5.1 → 6.1 → 6.2
 
 **并行机会**：
 - 1.2 / 1.3 与 2.1 可并行（无数据依赖）
+- 3.5 与 3.1 可并行（3.5 只依赖 1.2；两者都动 `libs/asyncStorage.ts` 但不重叠：3.5 在函数顶部，3.2 在 set 内部）
+- 3.6 与 3.4 可并行（3.6 只依赖 3.5）
 - 4.x 系列与 5.x 可并行
 - 2.4 与 3.1 可并行
 

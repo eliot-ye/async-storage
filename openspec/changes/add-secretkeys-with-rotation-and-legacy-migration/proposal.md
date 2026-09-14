@@ -11,6 +11,7 @@
 - 解密路径改造：先探测密文是否以 `[` 开头，是则按头定位 key；否则走 legacy fallback——遍历 `secretKeys` 中标 `legacy: true` 的项尝试解密；`secretKey` 存在时作为最终兜底。
 - `Option.secretKey` 标记 `@deprecated`（本版本保留，仅作为"一次性迁入"便利入口；下个 major 移除）。
 - **BREAKING** 语义：`Option.HashFn` 的语义**扩展**为"通用字符串哈希"——除 `enableHashKey` 场景外，也用于计算 secret 的 metadata hash。README 与 spec 必须明确"HashFn 需确保非可逆"，否则 secret 会泄露到密文头。
+- **安全契约强化（合并自 explore 阶段 c2）**：`secretKey` 与 `EncryptFn` / `DecryptFn` 必须同时提供，否则在工厂初始化时立即抛错——避免"配了 `secretKey` 但没提供加密函数"的**静默明文落库**路径（当前实现 `asyncStorage.ts` L109 `if (secretKey && EncryptFn)` 会静默走 JSON 明文分支）。此为契约强化而非放宽，属向后兼容范围内的小破坏性。
 - 更新 `openspec/specs/storage-core/spec.md` 的"值序列化与加密"Requirement；更新 `openspec/specs/utils/spec.md` 增补 `generateSecretKeys` Requirement。
 - 更新 `README.md` 加密钥组示例、迁移指南、HashFn 非可逆警告。
 

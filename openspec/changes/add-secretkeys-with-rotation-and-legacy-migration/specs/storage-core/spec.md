@@ -26,6 +26,36 @@
 
 `secretKey` 字段在本版本标记为 `@deprecated`；本版本仍完整支持其路径，下一个 major 版本将移除。
 
+### 加密契约校验（MUST）
+
+工厂函数（`createAsyncStorage` 与 `createSyncStorage`）在**初始化阶段**MUST 校验加密契约，避免"配了密钥但没提供加解密函数"时**静默以明文落库**：
+
+- 若 `option.secretKey` 存在，或 `option.secretKeys` 存在且为非空数组，则 `option.EncryptFn` 与 `option.DecryptFn` **必须同时提供**；否则工厂函数 MUST 立即 throw `Error(ErrorMessage.MISSING_ENCRYPT_FN)`。
+- 校验在工厂函数 body 顶部执行，先于所有引擎初始化与订阅逻辑。
+- 若 `option.secretKey` 与 `option.secretKeys` 均未配置（或 `secretKeys` 为空数组），不触发校验，工厂正常返回实例，走 `supportObject` 直存或 JSON 明文路径。
+
+`ErrorMessage` 枚举 MUST 新增 `MISSING_ENCRYPT_FN` 成员，其消息明确说明"secret 配置了但未提供 EncryptFn/DecryptFn，拒绝以明文存储"。
+
+#### Scenario: secretKey 存在但未提供 EncryptFn
+
+- **WHEN** 消费者调用 `createAsyncStorage({}, [engine], { secretKey: "k" })`（未传 `EncryptFn`）
+- **THEN** 工厂函数立即 throw `Error(ErrorMessage.MISSING_ENCRYPT_FN)`，未创建任何实例字段
+
+#### Scenario: secretKeys 存在但未提供 DecryptFn
+
+- **WHEN** 消费者调用 `createSyncStorage({}, [engine], { secretKeys: [{ key: "k" }], EncryptFn })`（未传 `DecryptFn`）
+- **THEN** 工厂函数立即 throw `Error(ErrorMessage.MISSING_ENCRYPT_FN)`
+
+#### Scenario: 无加密配置时不校验
+
+- **WHEN** 消费者调用 `createAsyncStorage({}, [engine])`（不传 `secretKey` 也不传 `secretKeys`）
+- **THEN** 工厂函数正常返回实例，后续 `set` / `get` 走 JSON 明文或 `supportObject` 直存路径
+
+#### Scenario: secretKeys 空数组不触发校验
+
+- **WHEN** 消费者调用 `createAsyncStorage({}, [engine], { secretKeys: [] })`
+- **THEN** 工厂函数正常返回实例（空数组等同于"未配置密钥组"）
+
 #### Scenario: 加密读写
 
 - **WHEN** 消费者配置了 `secretKey` 与 `EncryptFn`/`DecryptFn`，未配置 `secretKeys`，调用 `set("a", "x")` 后调用 `get("a")`
