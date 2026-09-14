@@ -3,10 +3,12 @@ import {
   type Option,
   type SubscribeFn,
   type JSONConstraint,
+  type SecretKeyEntry,
   ErrorMessage,
 } from "./types";
 import { MD5 } from "./utils/encoding";
 import { debounce, getOnlyStr } from "./utils/tools";
+import { pickActiveKey, pickLegacyKey, hashSecret } from "./utils/secrets";
 
 export function createSyncStorage<T extends JSONConstraint>(
   initialData: T,
@@ -19,18 +21,36 @@ export function createSyncStorage<T extends JSONConstraint>(
 ) {
   type Key = keyof T;
 
+  // 加密契约校验（v1.6.0 起强制）：与 createAsyncStorage 对称。
+  const hasSecretConfigured =
+    option.secretKey != null ||
+    (Array.isArray(option.secretKeys) && option.secretKeys.length > 0);
+  if (
+    hasSecretConfigured &&
+    (!option.EncryptFn || !option.DecryptFn)
+  ) {
+    throw new Error(ErrorMessage.MISSING_ENCRYPT_FN);
+  }
+
   const _engines = engines.filter((e) => e !== null);
   const _engine =
     typeof _engines[0] === "function" ? _engines[0]() : _engines[0];
 
   const {
     secretKey,
+    secretKeys,
     enableHashKey,
     EncryptFn,
     DecryptFn,
     HashFn = MD5,
     increments = [],
   } = option;
+
+  // 实例化时锁定当前活跃密钥
+  const activeKeyEntry: SecretKeyEntry | null = pickActiveKey(
+    secretKeys,
+    Date.now()
+  );
 
   function getHashKey(key: Key) {
     const _key = key as string;
@@ -72,6 +92,15 @@ export function createSyncStorage<T extends JSONConstraint>(
     { wait: 0 }
   );
 
+  function tryDecrypt(raw: string, key: string): T[Key] | null {
+    try {
+      return JSON.parse(DecryptFn!(raw, key));
+    } catch (error) {
+      console.error(key, error);
+      return null;
+    }
+  }
+
   return {
     set<K extends Key>(key: K, value: T[K]) {
       if (!_engine) {
@@ -85,8 +114,12 @@ export function createSyncStorage<T extends JSONConstraint>(
         };
       }
 
-      if (_engine.supportObject && !secretKey) {
+      if (_engine.supportObject && !secretKey && !activeKeyEntry) {
         _engine.setItem(getHashKey(key), _value);
+      } else if (activeKeyEntry && EncryptFn) {
+        const cipher = EncryptFn(JSON.stringify(_value), activeKeyEntry.key);
+        const hashPrefix = hashSecret(activeKeyEntry.key, HashFn);
+        _engine.setItem(getHashKey(key), `[${hashPrefix}]:${cipher}`);
       } else {
         let valueStr = JSON.stringify(_value);
         if (secretKey && EncryptFn) {
@@ -106,21 +139,43 @@ export function createSyncStorage<T extends JSONConstraint>(
       if (_value === null || _value === undefined) {
         return initialData[key];
       }
-      if (typeof _value === "string") {
-        if (secretKey && DecryptFn) {
-          try {
-            return JSON.parse(DecryptFn(_value, secretKey));
-          } catch (error) {
-            console.error(key, error);
-          }
+      if (typeof _value !== "string") {
+        return _value;
+      }
+
+      if (_value.startsWith("[") && _value.includes("]:") && DecryptFn) {
+        const sep = _value.indexOf("]:");
+        const hashPrefix = _value.slice(1, sep);
+        const cipher = _value.slice(sep + 2);
+        const matched = secretKeys?.find(
+          (e) =>
+            !e.legacy && hashSecret(e.key, HashFn) === hashPrefix
+        );
+        if (matched) {
+          const decoded = tryDecrypt(cipher, matched.key);
+          if (decoded !== null) return decoded;
         }
       }
+
+      if (secretKeys && DecryptFn) {
+        const legacyEntry = pickLegacyKey(secretKeys);
+        if (legacyEntry) {
+          const decoded = tryDecrypt(_value, legacyEntry.key);
+          if (decoded !== null) return decoded;
+        }
+      }
+
+      if (secretKey && DecryptFn) {
+        const decoded = tryDecrypt(_value, secretKey);
+        if (decoded !== null) return decoded;
+      }
+
       try {
         return JSON.parse(_value);
       } catch (error) {
         console.warn(key, error);
       }
-      return _value;
+      return _value as any;
     },
     remove(key: Key) {
       if (!_engine) {

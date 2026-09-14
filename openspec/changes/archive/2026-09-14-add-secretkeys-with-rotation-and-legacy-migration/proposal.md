@@ -103,3 +103,49 @@ explore 阶段（本会话）已闭合的 7 个决策：
 | a5 | `secretKey` 命运 | 本版本保留 `@deprecated`，下个 major 移除 |
 | a6 | c3 兜底 | 放弃（`DecryptFn` 无法判断解密成功） |
 | a7 | HashFn 复用 | 复用 `Option.HashFn`，README + spec 写清非可逆警告 |
+
+## 实际系统工程影响 vs 预期（archive 复盘）
+
+（tier-small 必填 2 字段；对照源：proposal 的"系统工程影响评估"节）
+
+### 实际影响的分系统
+
+- **storage-core**（主要，proposal 预期一致）：`libs/types.ts` 新增 `SecretKeyEntry` + `Option.secretKeys` + `secretKey @deprecated` + `ErrorMessage.MISSING_ENCRYPT_FN`；`libs/asyncStorage.ts` / `libs/syncStorage.ts` 加密读写路径重构（工厂函数初始化校验 + set/get 四段式回退：metadata 头 → legacy 项 → secretKey 兜底 → JSON.parse）；`libs/index.ts` 新增 `SecretKeyEntry` 与 `generateSecretKey(s)` 导出。
+- **utils**（次要，proposal 预期一致）：新增 `libs/utils/secrets.ts`，承载 `generateSecretKey` / `generateSecretKeys` / `pickActiveKey` / `pickLegacyKey` / `hashSecret` 五个函数。`pickActiveKey` / `pickLegacyKey` 从原 tasks.md 计划的"抽到 `libs/utils/secrets.ts`"落地，未新建 `libs/utils/key-rotation.ts`（architecture-review 已知 warning 的建议方案，本 change 保持原计划位置以控制 diff 面）。
+- **engine**（不变，proposal 预期一致）：`libs/engine/*` 零改动，`StorageEngine` 接口不动。
+- **测试层**：新增 `tests/encryption-contract.test.ts`（12 tests）、`tests/secretkeys.test.ts`（27 tests）；`tests/integration.test.ts` 追加 3 个真实 engine 场景（共 7 tests）；`tests/mock-engine.ts` 追加 `wrapMetadata` / `unwrapMetadata` 辅助。**原有 25 个 characterization test 全部保留未改断言**，`secretKey` 单密钥路径行为 100% 保留。
+- **文档 / 示例**：README 加密章节重写（含 secretKeys 用法 + legacy 迁移 + HashFn 非可逆警告 + RN polyfill 提示）；`src/main.ts` 示例从 `secretKey` 切到 `secretKeys`。
+- **版本 / 元数据**：`package.json` `version: 1.5.1 → 1.6.0`。
+
+### 预期行为模型验证
+
+**预期模型**（proposal「系统工程影响评估 · 预期行为模型」节的 4 条）：
+
+1. 新配置（`secretKeys`）下，同一实例生命周期内多次 `set` 用同一密钥，metadata 头 hash 一致。
+2. 消费者按时间新增 `secretKeys[i+1]`（`since`），重启实例后新 `set` 走新密钥，旧密文仍可读。
+3. 消费者移除 `secretKey` 后，只要 `secretKeys` 有 `legacy: true` 项，老数据仍可读出。
+4. 消费者删除 `secretKeys` 里的旧密钥后，老数据不再可读——显式"完成迁移"信号。
+
+**实际验证结果**：模型成立，预期行为模型已验证。
+
+- **模型 1**：`tests/secretkeys.test.ts` 的「storage-core — secretKeys 写入带 metadata 头（async）」两组用例断言 engine 收到的值形如 `[<hash8>:]<cipher>` 且 hashPrefix = `MD5(key).slice(0, 8)`；实例内锁定通过 `pickActiveKey(secretKeys, Date.now())` 在实例化时执行一次落地。
+- **模型 2**：`tests/secretkeys.test.ts` 的「时间轮换」用例 + `tests/integration.test.ts` 的「时间轮换：老 key 过期后新实例用新 key 写入，老密文仍可读」用例双端验证（mock + 真实 ELocalStorage），k1 过期后 LS2 既能读出 k1 旧密文，又能用 k2 写入新密文。
+- **模型 3**：`tests/secretkeys.test.ts` 的「legacy 项支持旧密文无 secretKey 可读回」+「新写入覆盖后升级为新格式」+「完成迁移后删除 legacy 项」三组用例；`tests/integration.test.ts` 的「legacy 迁移链路：无头老密文 → legacy 项解密 → 新写入升级为新格式」在真实 engine 上端到端验证。
+- **模型 4**：`tests/secretkeys.test.ts` 的「密钥已下线无法解密时回退」用例——metadata 头 hash 在 secretKeys 中找不到匹配、无 legacy、无 secretKey 时，回退 JSON.parse 失败后 `console.warn` 并返回原始字符串（沿用现有 quirky 行为）。
+
+**验证手段**：
+
+- `npm test`：**71 tests pass**（5 test files：asyncStorage 14 + syncStorage 11 + integration 7 + encryption-contract 12 + secretkeys 27）。原有 25 个 characterization test 全绿未改断言 = legacy 单密钥路径行为 100% 保留。
+- `tsc --noEmit`：EXIT=0。
+- `npm run build`：EXIT=0（vite 5.0.8 打包无 TS 错误，产物含 `dist/secrets-*.js` chunk）。
+- **系统级边界验证**（步骤 6.2，tier-small 冒烟级）：`tests/integration.test.ts` 用真实 `ELocalStorage` engine 注入 storage-core，覆盖 secretKeys 写入 + legacy 迁移 + 时间轮换 3 条跨边界链路，验证 storage-core 与真实 engine 在 `StorageEngine<false>` 契约层面无漂移。
+
+### 预期之外的副作用
+
+1. **契约强化是"小破坏性"**（proposal 「安全契约强化」段已声明）：`secretKey` / `secretKeys` 存在但缺 `EncryptFn` 或 `DecryptFn` 时，工厂函数在初始化阶段立即 `throw new Error(ErrorMessage.MISSING_ENCRYPT_FN)`——原本"只传 secretKey"能跑（但静默走明文路径）的场景从此会 throw。仓库内 caller 均满足契约（12 个加密契约测试 + 全量 71 tests 全绿）。README 加密章节显式警告。
+2. **`pickActiveKey` 文件位置**（architecture-review 已知 warning）：本 change 保持原计划位置（`libs/utils/secrets.ts`），未采纳 warning 建议抽到独立 `libs/utils/key-rotation.ts`。理由：本 change 的 utils 分系统定位仍清晰——`secrets.ts` 承载密钥"生成 + 选择"两个动作，都在密钥生命周期语义内。warning 记入本条副作用，作为后续重构候选。
+3. **多 legacy 项 tiebreaker 规则**（architecture-review 已知 warning）：实施时按 warning 建议明确——`since` 最大者优先，`since` 均缺失时取数组中最后一项（与 `pickActiveKey` tiebreaker 一致）。spec.md 未新增对应 Scenario（本 change 范围外），后续如需覆盖可另提 change。
+4. **`HashFn` 语义扩展的外部风险**：proposal caller impact 分析已提示"若消费者显式传了可逆 HashFn，升级后 secret 会泄露到 metadata 头"。仓库内 caller 均使用默认 MD5，无风险；外部消费者需在 README 警告下自行审视。这是本 change 唯一存在潜在不兼容的变更点，已在 design.md D5 与 README 加密章节显式文档化。
+5. **React Native 环境 polyfill 依赖**：`generateSecretKey` 底层用 `crypto.getRandomValues`，老 RN / 老 Node 环境需消费者安装 `react-native-get-random-values` 或类似 polyfill。库内无守卫 fallback，直接抛 `Error("generateSecretKey requires crypto.getRandomValues; ...")` 以让消费者在初始化阶段暴露问题而非运行时静默产出弱密钥。README 加密章节末尾已写 polyfill 用法。
+
+上述副作用均不构成全局失调——契约强化与语义扩展均已在 proposal / design / README / spec 四处显式文档化，其余属实现层选择，无跨分系统契约影响。

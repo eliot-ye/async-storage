@@ -70,6 +70,8 @@ LS.onReady().then(()=>{
 
 ***注意：从 v1.3.0 开始，不再内置加密模块，需要自行引入***
 
+#### 单密钥（@deprecated，仅兼容旧代码）
+
 ```js
 import { createAsyncStorage, EIndexedDB } from "gpl-async-storage";
 import { AES, enc } from "crypto-js";
@@ -87,16 +89,119 @@ const LS = createAsyncStorage(
   },
   [EIndexedDB()],
   {
-    // 加密密钥，有值则会加密存储
+    // @deprecated 使用 secretKeys；本版本仍支持
     secretKey: "secret",
     EncryptFn: AESEncrypt,
     DecryptFn: AESDecrypt,
 
-    // 所有 key 使用MD5值
+    // 所有 key 使用 MD5 值
     enableHashKey: true,
   }
 );
 ```
+
+> **v1.6.0 起加密契约强化**：`secretKey` 或 `secretKeys` 存在时，`EncryptFn` 与 `DecryptFn` **必须同时提供**，否则工厂函数在初始化阶段立即抛出 `Error(ErrorMessage.MISSING_ENCRYPT_FN)`——避免"配了密钥但没提供加密函数"时**静默以明文落库**。
+
+#### 密钥组（推荐，支持轮换 + 迁移）
+
+v1.6.0 起新增 `secretKeys` 字段：支持多密钥 + 时间窗口（`since` / `expiresAt`）+ 迁移期 `legacy` 标记。写入的密文会带 `[<hash8>:]<cipher>` metadata 头，让"哪把钥匙解的"内嵌在密文里，跨实例、跨页面、跨重启一致。
+
+```js
+import {
+  createAsyncStorage,
+  EIndexedDB,
+  generateSecretKey,
+  generateSecretKeys,
+} from "gpl-async-storage";
+import { AES, enc } from "crypto-js";
+
+function AESEncrypt(message: string, key: string) {
+  return AES.encrypt(message, key).toString();
+}
+function AESDecrypt(message: string, key: string) {
+  return AES.decrypt(message, key).toString(enc.Utf8);
+}
+
+// 首次初始化：生成一把 32 字节（256 bit）随机密钥
+const currentKey = generateSecretKey();
+
+const LS = createAsyncStorage(
+  {
+    counter: 0,
+  },
+  [EIndexedDB()],
+  {
+    secretKeys: [{ key: currentKey }],
+    EncryptFn: AESEncrypt,
+    DecryptFn: AESDecrypt,
+    enableHashKey: true,
+  }
+);
+```
+
+**轮换新密钥**（引入 `since`，实例重启后新 `set` 走新密钥；老密文仍可读）：
+
+```js
+const rotatedKey = generateSecretKey();
+const LS = createAsyncStorage(
+  initialData,
+  engines,
+  {
+    secretKeys: [
+      { key: currentKey, expiresAt: Date.now() }, // 老 key 停止写入
+      { key: rotatedKey, since: Date.now() },       // 新 key 接管
+    ],
+    EncryptFn: AESEncrypt,
+    DecryptFn: AESDecrypt,
+  }
+);
+```
+
+#### 从 `secretKey` 迁移到 `secretKeys`
+
+老代码如果用的是 `secretKey: "xxx"` 且 storage 里已经落了一批无 metadata 头的老密文，可以直接把老密钥标 `legacy: true` 加入 `secretKeys`——读取时自动走 legacy 项解密，写入时用非 legacy 项升级为新格式：
+
+```js
+// Step 1: 用 legacy 项兼容老数据
+const LS = createAsyncStorage(
+  initialData,
+  engines,
+  {
+    secretKeys: [
+      { key: "oldKeyFromSecretKey", legacy: true }, // 用于解密老数据
+      { key: generateSecretKey(), since: Date.now() }, // 用于新写入
+    ],
+    EncryptFn: AESEncrypt,
+    DecryptFn: AESDecrypt,
+  }
+);
+
+// Step 2: 观察一段时间，确认老数据已被新 set 覆盖或不再访问
+// Step 3: 从 secretKeys 中删除 legacy:true 的项 → 完成迁移
+```
+
+#### HashFn 非可逆警告
+
+`HashFn` 默认 `MD5`，v1.6.0 起同时用于两处：
+
+1. **键哈希**（`enableHashKey: true` 时对 key 变换）——现有语义，不变。
+2. **secret 哈希**（写入 `[<hash8>:]<cipher>` metadata 头时，取 `HashFn(secret).slice(0, 8)`）——新语义。
+
+若自定义 `HashFn`，**必须保证非可逆**（例如仍是 MD5 / SHA256 之类的单向哈希），否则 secret 会通过 metadata 头泄露。切勿用可逆函数（如 `toUpperCase` / 简单前缀拼接）作为 `HashFn`。
+
+#### React Native 环境
+
+`generateSecretKey` / `generateSecretKeys` 底层使用 `crypto.getRandomValues`（Web Crypto API）。若运行环境未提供（老 Node / React Native），请先安装 `react-native-get-random-values` 或类似 polyfill：
+
+```bash
+npm i react-native-get-random-values
+```
+
+```js
+import "react-native-get-random-values";
+import { generateSecretKey } from "gpl-async-storage";
+```
+
 
 ### 自定义存储引擎
 

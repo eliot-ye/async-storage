@@ -76,3 +76,32 @@ export function mockDecrypt(message: string, key: string): string {
   }
   return message.slice(prefix.length);
 }
+
+/**
+ * 构建带 metadata 头的密文（对应 v1.6.0 新格式 `[<hash8>:]<cipher>`）。
+ *
+ * @param hash8 - 8 字符 hash 前缀（通常来自 `HashFn(secret).slice(0, 8)`）
+ * @param innerCipher - 内层密文（可以是 mockEncrypt 的返回值）
+ */
+export function wrapMetadata(
+  hash8: string,
+  innerCipher: string
+): string {
+  return `[${hash8}]:${innerCipher}`;
+}
+
+/**
+ * 解析带 metadata 头的密文；格式不匹配时返回 null。
+ * 与 `libs/utils/secrets.ts` 的 `splitMetadataHeader` 语义等价，测试侧独立一份避免"用被测代码测被测代码"。
+ */
+export function unwrapMetadata(
+  raw: string
+): { hashPrefix: string; cipher: string } | null {
+  if (typeof raw !== "string") return null;
+  if (!raw.startsWith("[") || !raw.includes("]:")) return null;
+  const sep = raw.indexOf("]:");
+  const hashPrefix = raw.slice(1, sep);
+  if (hashPrefix.length === 0) return null;
+  return { hashPrefix, cipher: raw.slice(sep + 2) };
+}
+

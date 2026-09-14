@@ -6,8 +6,10 @@ profile: `profile-maintenance` × `tier-small`（见 `.td-state/profile-tier.yam
 
 ## 进行中
 
-- [ ] 密钥组轮换与老数据迁移
-  - [ ] change: add-secretkeys-with-rotation-and-legacy-migration
+## 已完成
+
+- [x] 密钥组轮换与老数据迁移
+  - [x] change: add-secretkeys-with-rotation-and-legacy-migration
 
 ## 待办
 

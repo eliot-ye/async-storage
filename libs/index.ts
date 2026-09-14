@@ -1,7 +1,12 @@
 export * from "./asyncStorage";
 export * from "./syncStorage";
 export { ErrorMessage } from "./types";
-export type { StorageEngine, JSONConstraint } from "./types";
+export type { StorageEngine, JSONConstraint, SecretKeyEntry } from "./types";
+export {
+  generateSecretKey,
+  generateSecretKeys,
+} from "./utils/secrets";
+export type { GenerateSecretKeyOptions } from "./utils/secrets";
 export {
   EIndexedDB,
   ErrorMessage as EIndexedDBErrorMessage,
