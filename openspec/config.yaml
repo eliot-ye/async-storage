@@ -1,0 +1,7 @@
+schema: spec-driven
+
+context: |
+  # 从 package.json 推断，用户未补充
+  - tech stack: TypeScript + Vite 5，依赖 crypto-js（加密）、js-md5
+  - domain: 前端异步本地存储库，统一 localStorage / indexedDB / cookie 的异步 API
+  - conventions: 未明确（用户答"无"）
