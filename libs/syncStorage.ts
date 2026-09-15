@@ -21,7 +21,7 @@ export function createSyncStorage<T extends JSONConstraint>(
 ) {
   type Key = keyof T;
 
-  // 加密契约校验（v1.6.0 起强制）：与 createAsyncStorage 对称。
+  // 加密契约校验（v2.0.0 起强制）：与 createAsyncStorage 对称。
   const hasSecretConfigured =
     option.secretKey != null ||
     (Array.isArray(option.secretKeys) && option.secretKeys.length > 0);
@@ -133,7 +133,10 @@ export function createSyncStorage<T extends JSONConstraint>(
     },
     get<K extends Key>(key: K): T[K] {
       if (!_engine) {
-        return new Error(ErrorMessage.NOT_ENGINE) as any;
+        // v2.0.0 起：与异步 get 的 Promise.reject 对称；同步返回 Error 对象会与
+        // TS 类型 T[K] 不一致（下游表达式如 get("k").toString() 会运行时崩溃且
+        // 编译期无警告），改为 throw 让"类型与运行时"一致。
+        throw new Error(ErrorMessage.NOT_ENGINE);
       }
       const _value = _engine.getItem(getHashKey(key));
       if (_value === null || _value === undefined) {

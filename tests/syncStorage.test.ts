@@ -190,14 +190,11 @@ describe("createSyncStorage — 无 engine 错误处理（quirky）", () => {
     expect((result as Error).message).toBe(ErrorMessage.NOT_ENGINE);
   });
 
-  it("get 无 engine 返回 Error 实例（Q5，非 Promise / 非 throw）", () => {
+  it("get 无 engine 抛出 Error（v2.0.0 起：与异步 reject 语义对称）", () => {
     const LS = createSyncStorage<{ counter: number }>({ counter: 0 }, [
       null,
     ]);
-    // 源码用 `as any` 把 Error 强转成 T[K]，测试侧用 as unknown as Error 还原
-    const result = LS.get("counter") as unknown as Error;
-    expect(result).toBeInstanceOf(Error);
-    expect(result.message).toBe(ErrorMessage.NOT_ENGINE);
+    expect(() => LS.get("counter")).toThrow(ErrorMessage.NOT_ENGINE);
   });
 
   it("remove 无 engine 返回 Error 实例", () => {

@@ -17,7 +17,7 @@ export function createAsyncStorage<T extends JSONConstraint, B extends boolean>(
 ) {
   type Key = keyof T;
 
-  // 加密契约校验（v1.6.0 起强制）：配了密钥就必须同时提供 EncryptFn/DecryptFn，
+  // 加密契约校验（v2.0.0 起强制）：配了密钥就必须同时提供 EncryptFn/DecryptFn，
   // 否则立即拒绝创建实例——避免"配了 secretKey 但没提供加密函数"时静默明文落库。
   const hasSecretConfigured =
     option.secretKey != null ||

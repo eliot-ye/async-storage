@@ -100,11 +100,11 @@ const LS = createAsyncStorage(
 );
 ```
 
-> **v1.6.0 起加密契约强化**：`secretKey` 或 `secretKeys` 存在时，`EncryptFn` 与 `DecryptFn` **必须同时提供**，否则工厂函数在初始化阶段立即抛出 `Error(ErrorMessage.MISSING_ENCRYPT_FN)`——避免"配了密钥但没提供加密函数"时**静默以明文落库**。
+> **v2.0.0 起加密契约强化**：`secretKey` 或 `secretKeys` 存在时，`EncryptFn` 与 `DecryptFn` **必须同时提供**，否则工厂函数在初始化阶段立即抛出 `Error(ErrorMessage.MISSING_ENCRYPT_FN)`——避免"配了密钥但没提供加密函数"时**静默以明文落库**。
 
 #### 密钥组（推荐，支持轮换 + 迁移）
 
-v1.6.0 起新增 `secretKeys` 字段：支持多密钥 + 时间窗口（`since` / `expiresAt`）+ 迁移期 `legacy` 标记。写入的密文会带 `[<hash8>:]<cipher>` metadata 头，让"哪把钥匙解的"内嵌在密文里，跨实例、跨页面、跨重启一致。
+v2.0.0 起新增 `secretKeys` 字段：支持多密钥 + 时间窗口（`since` / `expiresAt`）+ 迁移期 `legacy` 标记。写入的密文会带 `[<hash8>:]<cipher>` metadata 头，让"哪把钥匙解的"内嵌在密文里，跨实例、跨页面、跨重启一致。
 
 ```js
 import {
@@ -182,7 +182,7 @@ const LS = createAsyncStorage(
 
 #### HashFn 非可逆警告
 
-`HashFn` 默认 `MD5`，v1.6.0 起同时用于两处：
+`HashFn` 默认 `MD5`，v2.0.0 起同时用于两处：
 
 1. **键哈希**（`enableHashKey: true` 时对 key 变换）——现有语义，不变。
 2. **secret 哈希**（写入 `[<hash8>:]<cipher>` metadata 头时，取 `HashFn(secret).slice(0, 8)`）——新语义。
@@ -201,6 +201,11 @@ npm i react-native-get-random-values
 import "react-native-get-random-values";
 import { generateSecretKey } from "gpl-async-storage";
 ```
+
+
+### 发布流程
+
+本库从 `dist/` 目录执行 npm publish（见 `.github/workflows/npm-publish-github-packages.yml` 的 `cd dist && npm publish`）。因此 `package.json` 的 `files` 字段（当前为 `["*"]`）对实际发布产物是空操作——`dist/` 内的所有文件都会被打进 npm 包。若需要收紧发布内容，请修改 `vite.config.ts` 的 `build.lib.entry` 与 `closeBundle` 复制步骤，而不是修改 `files` 字段。
 
 
 ### 自定义存储引擎

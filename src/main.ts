@@ -76,7 +76,7 @@ const LSSecret = createAsyncStorage(
   },
   [EIndexedDB("LSSecret")],
   {
-    // v1.6.0 示例：使用密钥组（支持轮换 + 迁移）
+    // v2.0.0 示例：使用密钥组（支持轮换 + 迁移）
     secretKeys: [{ key: generateSecretKey() }],
     DecryptFn: AESDecrypt,
     EncryptFn: AESEncrypt,

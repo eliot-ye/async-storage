@@ -1,0 +1,23 @@
+# CI 冒烟：push / PR 时跑 build + test + pack dry-run
+# 与 npm-publish-github-packages.yml（release 触发，发布到 npm）互补共存
+# 注意：pack --dry-run 必须在 dist/ 下执行——真实发布从 dist/ 走（见 publish workflow）
+
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+      - run: cd dist && npm pack --dry-run

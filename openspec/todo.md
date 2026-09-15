@@ -15,19 +15,22 @@ profile: `profile-maintenance` × `tier-small`（见 `.td-state/profile-tier.yam
 
 ### P0 · 线上稳定性与安全
 
-- [ ] [P0] 补 CI 冒烟
+- [x] [P0] 补 CI 冒烟
   - 现状：`package.json` 只有 `test: vitest run`，无任何 CI 配置
   - 目标：GitHub Actions 最少覆盖 `npm ci && npm run build && npm test && npm pack --dry-run`
   - 触发原因：maintenance profile 瓶颈 = 部署 pipeline（`profile-maintenance.md` §4）
   - 参考：本会话 td-explore 探索记录（a1 组）
+  - [x] change: break-sync-error-semantics-and-bump-2-0-0（附带完成——CI 与 sync get throw 语义绑定在同一个 major 版本发布上；单 Node 18 版本，非矩阵）
 
 ### P1 · 工程卫生与打包
 
-- [ ] [P1] 收紧 npm 打包 `files` 白名单并清理 tracked `.DS_Store`
-  - 现状：`package.json` `files: ["*"]` 会把 `tests/`、`src/`、`dist/`、`node_modules/` 之外的仓库杂物打进 npm 包；`libs/.DS_Store` 被 explicit add 到 git（`.gitignore` 有 `.DS_Store` 但被覆盖）
-  - 目标：`files` 改为 `["dist"]`（或精确白名单 `["index.*", "cookie.*", "localStorage.*", "indexedDB.*"]`）；`git rm --cached libs/.DS_Store`
-  - 触发原因：npm pack 脏包 + 已发 1.5.1 的下游用户拿到不必要的文件
-  - 参考：本会话 td-explore 探索记录（b1 / b2 组）
+- [x] [P1] 收紧 npm 打包 `files` 白名单并清理 tracked `.DS_Store`
+  - **判断依据过时（2026-09-14 核查后）**：
+    - npm 包已干净：`vite.config.ts` 的 `closeBundle` 插件只复制白名单（package.json / LICENSE / README.md）到 `dist/`，发布流程是 `cd dist && npm publish`——因此 `files: ["*"]` 应用到 `dist/` 目录，实际产物不含 `tests/` / `src/` / `node_modules/` / `libs/` 等仓库杂物（`cd dist && npm pack --dry-run` 25 文件佐证）
+    - `.DS_Store` 未被 tracked：`git ls-files | grep DS_Store` 空；`.gitignore` L19 已忽略；`git check-ignore -v` 确认 `./.DS_Store` 与 `./libs/.DS_Store` 均被忽略；磁盘上的 `.DS_Store` 是 macOS 自动重建，不需要 `git rm --cached`
+  - **结论**：无需实施，条目关闭
+  - **保留 README 补"发布流程"说明**（已在 change `break-sync-error-semantics-and-bump-2-0-0` 落地）：解释 `cd dist && npm publish` 与 `files: ["*"]` 的关系，避免未来读者被配置误导
+  - 参考：本会话 td-explore 探索记录（b1 / b2 组）；change `break-sync-error-semantics-and-bump-2-0-0` 的 design.md D6 决策
 
 ### P1 · 类型契约与 API 语义
 
@@ -40,11 +43,13 @@ profile: `profile-maintenance` × `tier-small`（见 `.td-state/profile-tier.yam
   - 触发原因：`src/main.ts` L12 `[EIndexedDB(), ELocalStorage()]` 是误导性示例
   - 参考：本会话 td-explore 探索记录（c4 组）
 
-- [ ] [P1] 修 `createSyncStorage.get()` 的类型契约
-  - 现状：`get<K>(key: K): T[K]` 但无 engine 时 `return new Error(...) as any`（`libs/syncStorage.ts` L101-104）——运行时可能返回 Error，类型却是 `T[K]`
+- [x] [P1] 修 `createSyncStorage.get()` 的类型契约
+  - 现状：`get<K>(key: K): T[K]` 但无 engine 时 `return new Error(...) as any`（`libs/syncStorage.ts` L135-137）——运行时可能返回 Error，类型却是 `T[K]`
   - 目标：改成 `T[K] | Error`（宽化，向后兼容）；或在 JSDoc 里明确"调用前需先确认 engine 存在"
   - 触发原因：异步版本用 `Promise.reject` 规避了这个，同步版本绕不开
   - 参考：本会话 td-explore 探索记录（c4 组）
+  - **实际落地路径（与目标描述有偏差）**：走 C3 方案——`get()` 无 engine 时改为 **`throw new Error(ErrorMessage.NOT_ENGINE)`**（与异步 `Promise.reject` 对称），TS 类型 `T[K]` 保持不变（`as any` 直接删除）。理由：C1（`T[K] | Error`）把代价永久压给下游，每次调用都要 `instanceof Error` 分支；C3 类型无感、运行时对齐，代价是 breaking（走 major 2.0.0）。同步 `set`/`remove` 保持 `return Error` 不变（局部不对称，破坏面最小）。
+  - [x] change: break-sync-error-semantics-and-bump-2-0-0
 
 ### P2 · 技术债与代码卫生
 

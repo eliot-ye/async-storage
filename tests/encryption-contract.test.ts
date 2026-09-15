@@ -5,7 +5,7 @@ import { ErrorMessage } from "../libs/types";
 import { createMockEngine, mockEncrypt, mockDecrypt } from "./mock-engine";
 
 /**
- * 加密契约校验（v1.6.0 起强制）
+ * 加密契约校验（v2.0.0 起强制）
  *
  * 场景覆盖（tasks.md 3.6）：
  * 1. secretKey 存在、缺 EncryptFn → throw MISSING_ENCRYPT_FN

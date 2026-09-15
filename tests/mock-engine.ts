@@ -78,7 +78,7 @@ export function mockDecrypt(message: string, key: string): string {
 }
 
 /**
- * 构建带 metadata 头的密文（对应 v1.6.0 新格式 `[<hash8>:]<cipher>`）。
+ * 构建带 metadata 头的密文（对应 v2.0.0 新格式 `[<hash8>:]<cipher>`）。
  *
  * @param hash8 - 8 字符 hash 前缀（通常来自 `HashFn(secret).slice(0, 8)`）
  * @param innerCipher - 内层密文（可以是 mockEncrypt 的返回值）
