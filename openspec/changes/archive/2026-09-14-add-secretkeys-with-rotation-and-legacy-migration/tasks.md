@@ -26,21 +26,21 @@
 
 ## 1. 类型契约（关键链起点）
 
-- [ ] 1.1 在 `libs/types.ts` 中新增 `SecretKeyEntry` 接口（含 `key` / `since?` / `expiresAt?` / `legacy?: true`）
+- [x] 1.1 在 `libs/types.ts` 中新增 `SecretKeyEntry` 接口（含 `key` / `since?` / `expiresAt?` / `legacy?: true`）
   - 文件：`libs/types.ts`
   - 风险：low
   - 验证：`npx tsc --noEmit` 通过；接口字段与设计文档 D1 一致
   - 分系统影响：storage-core
   - 依赖：无
 
-- [ ] 1.2 在 `libs/types.ts` 中给 `Option.secretKey` 加 `@deprecated` JSDoc 注释，新增 `secretKeys?: SecretKeyEntry[]` 字段
+- [x] 1.2 在 `libs/types.ts` 中给 `Option.secretKey` 加 `@deprecated` JSDoc 注释，新增 `secretKeys?: SecretKeyEntry[]` 字段
   - 文件：`libs/types.ts`
   - 风险：low
   - 验证：`npx tsc --noEmit` 通过；`secretKey` 仍为可选字段（向后兼容）；TypeScript IDE 悬停显示 `deprecated` 标记
   - 分系统影响：storage-core
   - 依赖：1.1
 
-- [ ] 1.3 在 `libs/index.ts` 中导出 `SecretKeyEntry` 类型
+- [x] 1.3 在 `libs/index.ts` 中导出 `SecretKeyEntry` 类型
   - 文件：`libs/index.ts`
   - 风险：low
   - 验证：`import { SecretKeyEntry } from "gpl-async-storage"` 类型可用；`npx tsc --noEmit` 通过
@@ -51,28 +51,28 @@
 
 ## 2. 密钥生成工具（关键链）
 
-- [ ] 2.1 新建 `libs/utils/secrets.ts`，实现 `generateSecretKey(options?)`（默认 32 字节 hex）
+- [x] 2.1 新建 `libs/utils/secrets.ts`，实现 `generateSecretKey(options?)`（默认 32 字节 hex）
   - 文件：`libs/utils/secrets.ts`
   - 风险：low
   - 验证：单元测试 `tests/utils-secrets.test.ts` 覆盖 spec.md「默认生成 32 字节密钥」与「自定义字节数」Scenario；断言返回值为 64/32 字符的合法 hex 字符串
   - 分系统影响：utils
   - 依赖：1.1（无强依赖，但顺序上先有类型契约更清晰；实际可并行）
 
-- [ ] 2.2 在 `libs/utils/secrets.ts` 中实现 `generateSecretKeys(count, options?)`
+- [x] 2.2 在 `libs/utils/secrets.ts` 中实现 `generateSecretKeys(count, options?)`
   - 文件：`libs/utils/secrets.ts`
   - 风险：low
   - 验证：单元测试覆盖 spec.md「批量生成」与「随机性」Scenario；断言返回数组长度等于 count 且元素互不相同
   - 分系统影响：utils
   - 依赖：2.1
 
-- [ ] 2.3 在 `libs/utils/secrets.ts` 中导出并加入 `libs/index.ts` 主入口
+- [x] 2.3 在 `libs/utils/secrets.ts` 中导出并加入 `libs/index.ts` 主入口
   - 文件：`libs/utils/secrets.ts`、`libs/index.ts`
   - 风险：low
   - 验证：`import { generateSecretKey, generateSecretKeys } from "gpl-async-storage"` 可用；`npx tsc --noEmit` 通过
   - 分系统影响：utils + storage-core（入口）
   - 依赖：2.2
 
-- [ ] 2.4 验证 spec.md「库不偷偷生成密钥」Scenario：`createAsyncStorage` / `createSyncStorage` 内部不调用 `generateSecretKey`
+- [x] 2.4 验证 spec.md「库不偷偷生成密钥」Scenario：`createAsyncStorage` / `createSyncStorage` 内部不调用 `generateSecretKey`
   - 文件：`libs/asyncStorage.ts`、`libs/syncStorage.ts`（只读检查）
   - 风险：low
   - 验证：`grep -n "generateSecretKey" libs/asyncStorage.ts libs/syncStorage.ts` 无匹配
@@ -83,35 +83,35 @@
 
 ## 3. 密钥选择与加解密路径改造（关键链核心）
 
-- [ ] 3.1 新建内部辅助函数 `pickActiveKey(secretKeys, now)` 与 `pickLegacyKey(secretKeys)`（放在 `libs/asyncStorage.ts` 附近或抽出到 `libs/utils/` 供 async/sync 共用——**决策**：抽到 `libs/utils/secrets.ts` 底部，供两个 factory 复用）
+- [x] 3.1 新建内部辅助函数 `pickActiveKey(secretKeys, now)` 与 `pickLegacyKey(secretKeys)`（放在 `libs/asyncStorage.ts` 附近或抽出到 `libs/utils/` 供 async/sync 共用——**决策**：抽到 `libs/utils/secrets.ts` 底部，供两个 factory 复用）
   - 文件：`libs/utils/secrets.ts`
   - 风险：medium（跨两个 factory 的共享逻辑）
   - 验证：单元测试覆盖 spec.md「密钥选择规则」4 个 Scenario（单活跃 / 多活跃取 since 最新 / legacy 排除 / 无活跃退回）
   - 分系统影响：storage-core
   - 依赖：1.1
 
-- [ ] 3.2 改造 `libs/asyncStorage.ts` 的 `set` 路径：若存在活跃 key，`JSON.stringify` → `EncryptFn` → 前置 `[<hash8>:]` metadata 头 → 写 engine；否则走原 legacy 路径
+- [x] 3.2 改造 `libs/asyncStorage.ts` 的 `set` 路径：若存在活跃 key，`JSON.stringify` → `EncryptFn` → 前置 `[<hash8>:]` metadata 头 → 写 engine；否则走原 legacy 路径
   - 文件：`libs/asyncStorage.ts`
   - 风险：high（写入路径核心变更）
   - 验证：characterization test 全部通过（legacy 路径行为不变）+ 新增测试覆盖 spec.md「密钥组写入带 metadata 头」Scenario；断言 engine 收到的值形如 `[<8位hex>]:<cipher>`
   - 分系统影响：storage-core
   - 依赖：3.1
 
-- [ ] 3.3 改造 `libs/asyncStorage.ts` 的 `get` 路径：按 metadata 头 → legacy 项 → secretKey → JSON.parse 的顺序回退
+- [x] 3.3 改造 `libs/asyncStorage.ts` 的 `get` 路径：按 metadata 头 → legacy 项 → secretKey → JSON.parse 的顺序回退
   - 文件：`libs/asyncStorage.ts`
   - 风险：high（读取路径核心变更 + 多分支）
   - 验证：新增测试覆盖 spec.md「密钥组读取定位密钥」「legacy 项支持旧密文无 secretKey 可读回」「密钥已下线无法解密时回退」Scenario；characterization test 全部通过
   - 分系统影响：storage-core
   - 依赖：3.2
 
-- [ ] 3.4 改造 `libs/syncStorage.ts` 的 `set` 与 `get` 路径（逻辑与 3.2/3.3 对称）
+- [x] 3.4 改造 `libs/syncStorage.ts` 的 `set` 与 `get` 路径（逻辑与 3.2/3.3 对称）
   - 文件：`libs/syncStorage.ts`
   - 风险：high（对称变更，但独立文件）
   - 验证：新增 syncStorage 版本的 metadata 头写入 / 头定位读取 / legacy 回退测试；characterization test 全部通过
   - 分系统影响：storage-core
   - 依赖：3.3
 
-- [ ] 3.5 在 `libs/asyncStorage.ts` 与 `libs/syncStorage.ts` 的工厂函数**初始化阶段**新增加密契约校验（合并自 explore c2）
+- [x] 3.5 在 `libs/asyncStorage.ts` 与 `libs/syncStorage.ts` 的工厂函数**初始化阶段**新增加密契约校验（合并自 explore c2）
   - 文件：`libs/asyncStorage.ts`、`libs/syncStorage.ts`
   - 风险：medium（错误路径新增，行为契约强化）
   - 规则：
@@ -126,7 +126,7 @@
   - 分系统影响：storage-core + types（ErrorMessage 枚举扩展）
   - 依赖：1.2（`secretKeys` 字段先落地）
 
-- [ ] 3.6 新增 `tests/encryption-contract.test.ts` 覆盖 3.5 的初始化校验路径
+- [x] 3.6 新增 `tests/encryption-contract.test.ts` 覆盖 3.5 的初始化校验路径
   - 文件：`tests/encryption-contract.test.ts`
   - 风险：low（纯测试新增）
   - 覆盖 4 个 Scenario（每个 Scenario 各测异步 + 同步两个版本，共 8 个 `it`）：
@@ -142,21 +142,21 @@
 
 ## 4. 单元测试覆盖
 
-- [ ] 4.1 在 `tests/mock-engine.ts` 中让 `mockEncrypt` / `mockDecrypt` 支持 metadata 头格式（识别并剥离 `[<hash8>:]` 前缀）
+- [x] 4.1 在 `tests/mock-engine.ts` 中让 `mockEncrypt` / `mockDecrypt` 支持 metadata 头格式（识别并剥离 `[<hash8>:]` 前缀）
   - 文件：`tests/mock-engine.ts`
   - 风险：medium（测试基建变更，影响面广）
   - 验证：现有基于 mockEncrypt/mockDecrypt 的 characterization test 全部通过；新增 mock 版本的 metadata 头识别单元测试
   - 分系统影响：测试基建
   - 依赖：3.4
 
-- [ ] 4.2 新增 `tests/secretkeys.test.ts`，覆盖 spec.md 的 storage-core 全部新增 Scenario
+- [x] 4.2 新增 `tests/secretkeys.test.ts`，覆盖 spec.md 的 storage-core 全部新增 Scenario
   - 文件：`tests/secretkeys.test.ts`
   - 风险：medium
   - 验证：`npx vitest run tests/secretkeys.test.ts` 全部通过；覆盖「时间轮换后新密文用新密钥」「新写入覆盖后升级为新格式」「完成迁移后删除 legacy 项」等 Scenario
   - 分系统影响：测试
   - 依赖：4.1
 
-- [ ] 4.3 新增 `tests/integration.test.ts` 中 secretKeys + 真实 engine 的集成场景
+- [x] 4.3 新增 `tests/integration.test.ts` 中 secretKeys + 真实 engine 的集成场景
   - 文件：`tests/integration.test.ts`
   - 风险：medium
   - 验证：`npx vitest run tests/integration.test.ts` 全部通过；覆盖 ELocalStorage + secretKeys 的完整读写 + legacy 迁移链路
@@ -167,7 +167,7 @@
 
 ## 5. 文档与示例更新（关键链末端）
 
-- [ ] 5.1 更新 `README.md` 加密章节：
+- [x] 5.1 更新 `README.md` 加密章节：
   - 新增 `secretKeys` 用法示例（含 `generateSecretKeys` 调用）
   - 新增 legacy 迁移步骤示例
   - 新增「HashFn 必须非可逆」警告段落（引用 spec.md 相应 Requirement）
@@ -178,7 +178,7 @@
   - 分系统影响：文档
   - 依赖：3.4
 
-- [ ] 5.2 更新 `src/main.ts`（demo 入口）从 `secretKey` 改为 `secretKeys` + `generateSecretKey` 示例
+- [x] 5.2 更新 `src/main.ts`（demo 入口）从 `secretKey` 改为 `secretKeys` + `generateSecretKey` 示例
   - 文件：`src/main.ts`
   - 风险：low
   - 验证：`npm run dev` 启动 demo 不报错；`npx tsc --noEmit` 通过
@@ -189,14 +189,14 @@
 
 ## 6. 项目缓冲吸收（project buffer ≈ 1.2 小时）
 
-- [ ] 6.1 端到端回归：`npm test` 全量跑通（characterization test + 新增 secretKeys 测试 + 集成测试）
+- [x] 6.1 端到端回归：`npm test` 全量跑通（characterization test + 新增 secretKeys 测试 + 集成测试）
   - 文件：无（验证任务）
   - 风险：medium
   - 验证：`npm test` 退出码 0；`npm run build` 通过（Vite 打包无 TS 错误）
   - 分系统影响：全系统
   - 依赖：4.3、5.2
 
-- [ ] 6.2 版本 bump 到 1.6.0，更新 `package.json` 的 `version` 字段
+- [x] 6.2 版本 bump 到 1.6.0，更新 `package.json` 的 `version` 字段
   - 文件：`package.json`
   - 风险：low
   - 验证：`grep "\"version\"" package.json` 显示 `"version": "1.6.0"`

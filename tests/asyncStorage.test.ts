@@ -145,6 +145,70 @@ describe("createAsyncStorage — 订阅与防抖", () => {
     await wait();
     expect(fn).toHaveBeenCalledTimes(1); // set 不再触发
   });
+
+  // 并发 set 各自 key 都被通知（对应 spec 新 Scenario）
+  it("并发 set 不同 key 各自订阅都被通知（防抖窗口清空不影响匹配）", async () => {
+    const engine = createMockEngine(true);
+    const LS = createAsyncStorage<{ a: number; b: number }, true>(
+      { a: 0, b: 0 },
+      [engine]
+    );
+    const fnA = vi.fn();
+    const fnB = vi.fn();
+    LS.subscribe(fnA, ["a"]);
+    LS.subscribe(fnB, ["b"]);
+    fnA.mockClear();
+    fnB.mockClear();
+    // 同一微任务批次内并发 set——两个 await setItem 都进入 promise 队列
+    await Promise.all([LS.set("a", 1), LS.set("b", 2)]);
+    await wait();
+    // 各自 key 都被通知——订阅匹配不丢失
+    expect(fnA).toHaveBeenCalled();
+    expect(fnB).toHaveBeenCalled();
+  });
+
+  // 连续快速 set 同一 key 不丢通知（对应既有 Scenario "多次 set 合并" 的断言补强）
+  it("连续快速 set 同一 key 防抖合并后订阅仍被调用", async () => {
+    const engine = createMockEngine(true);
+    const LS = createAsyncStorage<{ counter: number }, true>(
+      { counter: 0 },
+      [engine]
+    );
+    const fn = vi.fn();
+    LS.subscribe(fn, ["counter"]);
+    fn.mockClear();
+    LS.set("counter", 1);
+    LS.set("counter", 2);
+    await wait();
+    // 合并后只通知一次，但订阅函数确被调用
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+
+  // 跨防抖批次 set 匹配独立（对应 spec 新 Scenario）
+  it("跨防抖批次 set：上一批 effectKeys 清空不影响后续 set 匹配", async () => {
+    const engine = createMockEngine(true);
+    const LS = createAsyncStorage<{ a: number; b: number }, true>(
+      { a: 0, b: 0 },
+      [engine]
+    );
+    const fnA = vi.fn();
+    const fnB = vi.fn();
+    LS.subscribe(fnA, ["a"]);
+    LS.subscribe(fnB, ["b"]);
+    fnA.mockClear();
+    fnB.mockClear();
+    // 第一批：set("a", ...) 后等 timer 触发，effectKeys 被清空
+    await LS.set("a", 1);
+    await wait();
+    expect(fnA).toHaveBeenCalled();
+    expect(fnB).not.toHaveBeenCalled();
+    fnA.mockClear();
+    fnB.mockClear();
+    // 第二批：effectKeys 已清空，set("b", ...) 的 key 匹配不受上一批影响
+    await LS.set("b", 2);
+    await wait();
+    expect(fnB).toHaveBeenCalled();
+  });
 });
 
 describe("createAsyncStorage — 无 engine 错误处理（quirky）", () => {

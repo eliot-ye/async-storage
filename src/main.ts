@@ -1,5 +1,10 @@
 import "./style.css";
-import { createAsyncStorage, EIndexedDB, ELocalStorage } from "../libs";
+import {
+  createAsyncStorage,
+  EIndexedDB,
+  ELocalStorage,
+  generateSecretKey,
+} from "../libs";
 import { AESDecrypt, AESEncrypt } from "./utils/encoding";
 
 const LS = createAsyncStorage(
@@ -71,7 +76,8 @@ const LSSecret = createAsyncStorage(
   },
   [EIndexedDB("LSSecret")],
   {
-    secretKey: "123456",
+    // v2.0.0 示例：使用密钥组（支持轮换 + 迁移）
+    secretKeys: [{ key: generateSecretKey() }],
     DecryptFn: AESDecrypt,
     EncryptFn: AESEncrypt,
     enableHashKey: true,
